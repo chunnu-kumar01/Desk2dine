@@ -59,7 +59,7 @@
         var user = await api("/api/auth/me", { skipAuthRedirect: true });
         window.location.href = user.role === "ADMIN" ? "admin.html" : "faculty.html";
       } catch (e) {
-        window.location.href = "login.html";
+        window.location.href = "faculty.html";
       }
     })();
   </script>
