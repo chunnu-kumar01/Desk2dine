@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2874F0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<title>Sign Up — Desk2Dine</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><span class="mark">Desk2Dine</span></div>
+      <div class="auth-tagline">Faculty Canteen Order System</div>
+      <h1>Create your account</h1>
+      <div class="auth-sub">Takes less than a minute</div>
+
+      <form id="signupForm" novalidate>
+        <input type="hidden" id="selectedRole" value="FACULTY">
+
+        <div class="field">
+          <label>Registering as</label>
+          <div class="role-toggle">
+            <div class="role-option selected" data-role="FACULTY">
+              <span class="material-symbols-outlined">school</span> Faculty
+            </div>
+            <div class="role-option" data-role="ADMIN" id="adminRoleOption" style="display:none">
+              <span class="material-symbols-outlined">admin_panel_settings</span> Canteen Admin
+            </div>
+          </div>
+          <div class="field-hint">Faculty accounts can be created here. Admin accounts are created by administrators.</div>
+        </div>
+
+        <div class="field">
+          <label for="fullName">Full Name</label>
+          <input type="text" id="fullName" placeholder="e.g. Dr. Rina Sharma" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@college.edu" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="mobileNumber">Mobile Number</label>
+          <input type="tel" id="mobileNumber" placeholder="10-digit mobile number" autocomplete="tel">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="At least 8 characters" autocomplete="new-password">
+          <div class="password-strength"><div class="password-strength-fill" id="strengthFill"></div></div>
+          <div class="field-hint">Use uppercase, lowercase, a number, and a special character.</div>
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" id="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="signupBtn">
+          <span class="material-symbols-outlined">person_add</span> Create Account
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Log in</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/common.js"></script>
+  <script src="js/signup.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2874F0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<title>Desk2Dine</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+<style>
+  .splash-screen{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;gap:20px;
+    background:#2874F0;
+  }
+  .splash-brand{
+    display:flex;align-items:center;gap:14px;
+    animation:splashFade .8s ease both;
+  }
+  .splash-icon{
+    width:64px;height:64px;border-radius:12px;
+    background:#FFE11B;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 16px rgba(0,0,0,0.2);
+  }
+  .splash-icon .material-symbols-outlined{font-size:36px;color:#2874F0;}
+  .splash-text{
+    font-family:'Roboto',sans-serif;font-weight:700;font-size:36px;color:#fff;
+    letter-spacing:-0.5px;
+  }
+  .splash-sub{
+    color:rgba(255,255,255,0.7);font-size:14px;font-weight:500;
+    animation:splashFade .8s ease .2s both;
+  }
+  .splash-spinner{
+    width:36px;height:36px;border-radius:50%;
+    border:3px solid rgba(255,255,255,0.15);border-top-color:#FFE11B;
+    animation:spin .8s linear infinite,splashFade .8s ease .4s both;
+  }
+  @keyframes splashFade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+  <div class="splash-screen">
+    <div class="splash-brand">
+      <div class="splash-icon">
+        <span class="material-symbols-outlined">restaurant</span>
+      </div>
+      <div class="splash-text">Desk2Dine</div>
+    </div>
+    <div class="splash-sub">Faculty Canteen Order System</div>
+    <div class="splash-spinner"></div>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    (async function(){
+      try {
+        var user = await api("/api/auth/me", { skipAuthRedirect: true });
+        window.location.href = user.role === "ADMIN" ? "admin.html" : "faculty.html";
+      } catch (e) {
+        window.location.href = "login.html";
+      }
+    })();
+  </script>
+</body>
+</html>

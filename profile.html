@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2874F0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<title>Profile — Desk2Dine</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+</head>
+<body>
+
+  <div class="topbar">
+    <span class="brand">
+      <span class="brand-icon"><span class="material-symbols-outlined">restaurant</span></span>
+      Desk2Dine <span class="portal-label" id="portalLabel">Faculty</span>
+    </span>
+    <div class="topbar-right">
+      <a href="cart.html" class="icon-btn cart-badge" id="cartIcon" title="Cart" style="display:none;">
+        <span class="material-symbols-outlined">shopping_cart</span>
+        <span class="badge-count topbar-cart-count" style="display:none;"></span>
+      </a>
+      <button class="icon-btn" onclick="window.location.href='notifications.html'">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="badge-dot" id="notifBadge" style="display:none;"></span>
+      </button>
+      <span class="topbar-user" id="topbarUserName"></span>
+      <button class="logout-btn" onclick="logout()">
+        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">logout</span> Logout
+      </button>
+    </div>
+  </div>
+  <div class="subnav" id="subnav"></div>
+
+  <main class="page">
+    <div class="profile-header" id="profileHeader">
+      <div class="profile-avatar">
+        <span class="material-symbols-outlined">person</span>
+      </div>
+      <div class="profile-info">
+        <h2 id="profileName">Loading...</h2>
+        <p id="profileEmail">—</p>
+        <div class="profile-role" id="profileRole">
+          <span class="material-symbols-outlined" style="font-size:14px;">badge</span>
+          Faculty
+        </div>
+      </div>
+      <button class="profile-edit-btn" onclick="openEditModal()">
+        <span class="material-symbols-outlined" style="font-size:16px;">edit</span> Edit Profile
+      </button>
+    </div>
+
+    <div class="profile-stats" id="profileStats">
+      <div class="profile-stat-card">
+        <div class="stat-icon-lg blue"><span class="material-symbols-outlined">shopping_cart</span></div>
+        <div class="stat-num" id="statTotalOrders">0</div>
+        <div class="stat-lbl">Total Orders</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="stat-icon-lg green"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="stat-num" id="statCompleted">0</div>
+        <div class="stat-lbl">Completed</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="stat-icon-lg orange"><span class="material-symbols-outlined">pending</span></div>
+        <div class="stat-num" id="statPending">0</div>
+        <div class="stat-lbl">Pending</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="stat-icon-lg purple"><span class="material-symbols-outlined">payments</span></div>
+        <div class="stat-num" id="statSpending">₹0</div>
+        <div class="stat-lbl">Total Spending</div>
+      </div>
+    </div>
+
+    <div class="profile-menu" id="profileMenu"></div>
+
+    <div id="passwordSection" style="margin-top:32px;">
+      <div class="panel">
+        <h2><span class="material-symbols-outlined" style="font-size:20px;vertical-align:middle;">lock</span> Change Password</h2>
+        <form id="passwordForm" novalidate>
+          <div class="field">
+            <label for="currentPassword">Current Password</label>
+            <input type="password" id="currentPassword" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input type="password" id="confirmPassword" autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn-outline" id="changePasswordBtn">
+            <span class="material-symbols-outlined">key</span> Change Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <nav class="mobile-nav" id="mobileNav"></nav>
+
+  <footer class="site-footer">Desk2Dine &copy; 2026 &mdash; Faculty Canteen Order System</footer>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Edit Profile</h2>
+        <button class="modal-close" onclick="closeEditModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="profileForm" novalidate>
+          <div class="floating-field">
+            <input type="text" id="fullName" placeholder=" ">
+            <label>Full Name</label>
+          </div>
+          <div class="floating-field">
+            <input type="email" id="email" disabled>
+            <label>Email</label>
+          </div>
+          <div class="floating-field">
+            <input type="tel" id="mobileNumber" placeholder=" ">
+            <label>Mobile Number</label>
+          </div>
+          <div class="floating-field">
+            <input type="text" id="role" disabled>
+            <label>Role</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">
+          <span class="material-symbols-outlined">save</span> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/common.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
