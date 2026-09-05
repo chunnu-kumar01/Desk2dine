@@ -1602,5 +1602,55 @@ tbody tr:hover { background: #f9f9f9; }
 .empty p { font-size: 14px; color: var(--fk-text-light); }
 
 /* ============================================================
-   ADMIN SPECIFIC
-   ============================================================ */
+    GLOBAL RESPONSIVE FIXES
+    ============================================================ */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+img {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================================
+    EXTRA SMALL MOBILE (max-width: 360px)
+    ============================================================ */
+@media (max-width: 360px) {
+  .page { padding: 8px; }
+  .panel { padding: 12px; }
+  .btn { padding: 8px 14px; font-size: 12px; }
+  .topbar-user { display: none; }
+  .search-bar { max-width: 120px; }
+  .cart-item { flex-wrap: wrap; }
+  .detail-line { flex-direction: column; }
+  .timeline-step { flex-direction: column; }
+}
+
+/* ============================================================
+    TABLET (min-width: 769px) and (max-width: 1024px)
+    ============================================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container { max-width: 720px; }
+  .food-card-img-wrap { height: 180px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+    WIDE SCREEN (min-width: 1401px)
+    ============================================================ */
+@media (min-width: 1401px) {
+  .container { max-width: 1200px; }
+}
+
+/* ============================================================
+    ADMIN SPECIFIC
+    ============================================================ */
