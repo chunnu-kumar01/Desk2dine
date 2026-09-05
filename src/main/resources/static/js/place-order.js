@@ -44,8 +44,7 @@ function generateStars(rating) {
 }
 
 async function init() {
-  currentUser = await requireAuth(["FACULTY"]);
-  if (!currentUser) return;
+  currentUser = null;
 
   // Show skeletons while loading
   renderFoodSkeletons(document.getElementById("menuList"), 8);
