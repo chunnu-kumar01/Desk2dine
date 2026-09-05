@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2874F0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<title>Track Order — Desk2Dine</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
+</head>
+<body>
+
+  <div class="topbar">
+    <span class="brand">
+      <span class="brand-icon"><span class="material-symbols-outlined">restaurant</span></span>
+      Desk2Dine <span class="portal-label">Faculty</span>
+    </span>
+    <div class="topbar-right">
+      <a href="cart.html" class="icon-btn cart-badge" title="Cart">
+        <span class="material-symbols-outlined">shopping_cart</span>
+        <span class="badge-count topbar-cart-count" style="display:none;"></span>
+      </a>
+      <button class="icon-btn" onclick="window.location.href='notifications.html'">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="badge-dot" id="notifBadge" style="display:none;"></span>
+      </button>
+      <span class="topbar-user" id="topbarUserName"></span>
+      <button class="logout-btn" onclick="logout()">
+        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">logout</span> Logout
+      </button>
+    </div>
+  </div>
+  <div class="subnav">
+    <a href="faculty.html"><span class="material-symbols-outlined">shopping_cart</span> Place Order</a>
+    <a href="menu.html"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>
+    <a href="favourites.html"><span class="material-symbols-outlined">favorite</span> Favourites</a>
+    <a href="cart.html"><span class="material-symbols-outlined">shopping_cart</span> Cart</a>
+    <a href="my-orders.html" class="active"><span class="material-symbols-outlined">receipt_long</span> My Orders</a>
+    <a href="profile.html"><span class="material-symbols-outlined">person</span> Profile</a>
+  </div>
+
+  <main class="page">
+    <div id="trackContent"></div>
+  </main>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="faculty.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">shopping_cart</span>
+        <span>Order</span>
+      </a>
+      <a href="menu.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">restaurant_menu</span>
+        <span>Menu</span>
+      </a>
+      <a href="cart.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">shopping_cart</span>
+        <span>Cart</span>
+      </a>
+      <a href="my-orders.html" class="mobile-nav-item active">
+        <span class="material-symbols-outlined">receipt_long</span>
+        <span>Orders</span>
+      </a>
+      <a href="profile.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">person</span>
+        <span>Profile</span>
+      </a>
+    </div>
+  </nav>
+
+  <footer class="site-footer">Desk2Dine &copy; 2026 &mdash; Faculty Canteen Order System</footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/common.js"></script>
+  <script src="js/track-order.js"></script>
+</body>
+</html>

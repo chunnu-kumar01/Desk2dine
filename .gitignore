@@ -1,0 +1,80 @@
+# Build output
+target/
+bin/
+app/
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+app.log
+server.log
+app-err.log
+server-err.log
+tunnel.log
+tunnel-err.log
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Dependencies
+# (maven dependencies are downloaded, not committed)
+
+# Cloudflare
+cloudflared.exe
+
+# Scripts
+watchdog.bat
+watchdog.ps1
+start-backend.bat
+start-frontend.bat
+final-check.ps1
+
+# Old project directories (not part of this project)
+frontend/
+backend/
+server.py
+portfolio/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Spring Boot
+*.jar
+*.war
+*.jar.original
+
+# MySQL
+*.sql.bak
+*.sql.old
+
+# Test
+**/test-results/
+**/coverage/
+
+# Misc
+*.log.*
+*.pid
+*.hprof
+*.dump
