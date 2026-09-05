@@ -106,8 +106,8 @@ async function loadMenu() {
 
 function renderMenu(items) {
   const list = document.getElementById("menuList");
-  if (!items.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon"><span class="material-symbols-outlined">search_off</span></div><div class="big">No items found</div><p>Try a different search or category.</p></div>';
+if (!items || items.length === 0) {
+  list.innerHTML = '<div class="empty-state"><div class="empty-icon"><span class="material-symbols-outlined">search_off</span></div><div class="big">No items found</div><p>Try a different search or category.</p></div>';
     return;
   }
   list.innerHTML = items.map(function(item) {
