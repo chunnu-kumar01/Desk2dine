@@ -2,6 +2,8 @@
 
 > Faculty Canteen Order Platform — A full-stack web application built with Spring Boot, MySQL, and vanilla HTML/CSS/JS featuring a Flipkart-inspired UI design.
 
+[![GitHub](https://img.shields.io/badge/GitHub-chunnu-kumar01%2FDesk2dine-181717?logo=github&logoColor=white)](https://github.com/chunnu-kumar01/Desk2dine)
+
 ![Java 26](https://img.shields.io/badge/Java-26-orange?logo=java&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-6db344?logo=spring&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
@@ -275,11 +277,11 @@ Every /api/** Request
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. **Clone**: `git clone https://github.com/chunnu-kumar01/Desk2dine.git`
+2. **Branch**: `git checkout -b feature/AmazingFeature`
+3. **Commit**: `git commit -m 'Add some AmazingFeature'`
+4. **Push**: `git push origin feature/AmazingFeature`
+5. **PR**: Open a Pull Request on [GitHub](https://github.com/chunnu-kumar01/Desk2dine)
 
 ---
 
