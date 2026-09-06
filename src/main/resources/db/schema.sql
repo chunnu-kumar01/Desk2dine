@@ -96,10 +96,10 @@ CREATE TABLE IF NOT EXISTS delivery_locations (
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bill_number_sequence (
     id          TINYINT PRIMARY KEY,
-    last_value  BIGINT NOT NULL DEFAULT 0
+    counter     BIGINT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT IGNORE INTO bill_number_sequence (id, last_value) VALUES (1, 0);
+INSERT IGNORE INTO bill_number_sequence (id, counter) VALUES (1, 0);
 
 -- ---------------------------------------------------------------------
 -- orders: one row per placed order; drives the PLACED..COMPLETED workflow

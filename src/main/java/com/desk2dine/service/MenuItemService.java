@@ -10,8 +10,15 @@ import com.desk2dine.repository.CategoryRepository;
 import com.desk2dine.repository.MenuItemRepository;
 import com.desk2dine.util.ValidationUtil;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -24,9 +31,10 @@ public class MenuItemService {
     private final MenuItemRepository menuItemRepository;
     private final CategoryRepository categoryRepository;
     private final AuditLogService auditLogService;
+    private static final String UPLOAD_DIR = "src/main/resources/static/uploads";
 
     public MenuItemService(MenuItemRepository menuItemRepository, CategoryRepository categoryRepository,
-                            AuditLogService auditLogService) {
+                           AuditLogService auditLogService) {
         this.menuItemRepository = menuItemRepository;
         this.categoryRepository = categoryRepository;
         this.auditLogService = auditLogService;
@@ -46,7 +54,7 @@ public class MenuItemService {
                 .orElseThrow(() -> new NotFoundException("Menu item not found"));
     }
 
-    public MenuItem create(MenuItemRequest request, Long actingUserId) {
+    public MenuItem create(MenuItemRequest request, Long actingUserId, MultipartFile imageFile) {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ValidationException("Selected category does not exist"));
         validate(request);
@@ -56,15 +64,34 @@ public class MenuItemService {
         item.setName(ValidationUtil.sanitize(request.getName()));
         item.setDescription(ValidationUtil.sanitize(request.getDescription()));
         item.setPrice(BigDecimal.valueOf(request.getPrice()));
-        item.setImageUrl(request.getImageUrl());
         item.setAvailable(request.getAvailable() == null || request.getAvailable());
+
+        // Handle image upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                String uploadPath = System.getProperty("user.dir") + "/" + UPLOAD_DIR;
+                File uploadDir = new File(uploadPath);
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+                String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+                Path filePath = Paths.get(uploadPath, fileName);
+                Files.write(filePath, imageFile.getBytes());
+                item.setImageUrl("/uploads/" + fileName);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to upload image", e);
+            }
+        } else {
+            // Set a default image if no file uploaded
+            item.setImageUrl("/uploads/default.png");
+        }
 
         MenuItem saved = menuItemRepository.insert(item);
         auditLogService.record(actingUserId, "MENU_ITEM_CREATED", "MENU_ITEM", saved.getId(), saved.getName());
         return saved;
     }
 
-    public MenuItem update(Long id, MenuItemRequest request, Long actingUserId) {
+    public MenuItem update(Long id, MenuItemRequest request, Long actingUserId, MultipartFile imageFile) {
         MenuItem existing = findById(id);
         categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ValidationException("Selected category does not exist"));
@@ -74,8 +101,24 @@ public class MenuItemService {
         existing.setName(ValidationUtil.sanitize(request.getName()));
         existing.setDescription(ValidationUtil.sanitize(request.getDescription()));
         existing.setPrice(BigDecimal.valueOf(request.getPrice()));
-        existing.setImageUrl(request.getImageUrl());
         existing.setAvailable(request.getAvailable() == null || request.getAvailable());
+
+        // Handle image upload - replace existing image
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                String uploadPath = System.getProperty("user.dir") + "/" + UPLOAD_DIR;
+                File uploadDir = new File(uploadPath);
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+                String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+                Path filePath = Paths.get(uploadPath, fileName);
+                Files.write(filePath, imageFile.getBytes());
+                existing.setImageUrl("/uploads/" + fileName);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to upload image", e);
+            }
+        }
 
         menuItemRepository.update(existing);
         auditLogService.record(actingUserId, "MENU_ITEM_UPDATED", "MENU_ITEM", id, existing.getName());

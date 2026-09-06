@@ -176,32 +176,57 @@ function closeMenuItemForm() {
 document.getElementById("menuItemForm").addEventListener("submit", async function(e) {
   e.preventDefault();
   var id = document.getElementById("menuItemId").value;
-  var payload = {
-    categoryId: parseInt(document.getElementById("miCategory").value, 10),
-    name: document.getElementById("miName").value.trim(),
-    description: document.getElementById("miDescription").value.trim(),
-    price: parseFloat(document.getElementById("miPrice").value),
-    available: document.getElementById("miAvailable").value === "true"
-  };
-  if (!payload.name || !payload.price || payload.price <= 0) {
+  var file = document.getElementById("miImage").files[0];
+  var formData = new FormData();
+  formData.append("categoryId", parseInt(document.getElementById("miCategory").value, 10));
+  formData.append("name", document.getElementById("miName").value.trim());
+  formData.append("description", document.getElementById("miDescription").value.trim());
+  formData.append("price", parseFloat(document.getElementById("miPrice").value));
+  formData.append("available", document.getElementById("miAvailable").value === "true");
+  if (file) { formData.append("imageFile", file); }
+  if (!formData.get("name") || !formData.get("price") || Number(formData.get("price")) <= 0) {
     showToast("Please enter a valid name and price", true);
     return;
   }
   var btn = document.getElementById("menuItemSaveBtn");
   btn.disabled = true;
   try {
-    if (id) {
-      await api("/api/menu-items/" + id, { method: "PUT", body: JSON.stringify(payload) });
-      showToast("Menu item updated");
-    } else {
-      await api("/api/menu-items", { method: "POST", body: JSON.stringify(payload) });
-      showToast("Menu item created");
-    }
+    var method = id ? "PUT" : "POST";
+    var url = id ? "/api/menu-items/" + id : "/api/menu-items";
+    var res = await apiFormData(url, { method: method, body: formData });
+    showToast("Menu item " + (id ? "updated" : "created"));
     closeMenuItemForm();
     loadMenuItems();
   } catch (e) { showToast(e.message, true); }
   finally { btn.disabled = false; }
 });
+
+async function apiFormData(path, options) {
+  const opts = Object.assign({ credentials: "same-origin" }, options);
+  opts.headers = Object.assign({}, options && options.headers);
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch (networkError) {
+    throw new Error("Could not reach the server. Please check your connection.");
+  }
+  if (res.status === 401) {
+    if (!opts.skipAuthRedirect) {
+      window.location.href = "login.html?expired=1";
+    }
+    throw new Error("Session expired");
+  }
+  const text = await res.text().catch(function(){ return ""; });
+  if (!res.ok) {
+    try {
+      var err = JSON.parse(text);
+      throw new Error(err.message || "Something went wrong");
+    } catch (e) {
+      throw new Error(text || "Something went wrong");
+    }
+  }
+  return text;
+}
 
 async function deleteMenuItem(id) {
   if (!confirm("Delete this menu item? This cannot be undone.")) return;

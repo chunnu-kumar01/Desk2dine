@@ -11,6 +11,7 @@ import com.desk2dine.util.SessionUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * GET is available to any logged-in user (faculty browsing the menu,
@@ -45,15 +46,22 @@ public class MenuItemController {
 
     @PostMapping
     @RequireRole(Role.ADMIN)
-    public ApiResponse<MenuItem> create(@Valid @RequestBody MenuItemRequest request, HttpServletRequest httpRequest) {
-        return ApiResponse.ok("Menu item created", menuItemService.create(request, SessionUtil.getCurrentUserId(httpRequest)));
+    public ApiResponse<MenuItem> create(@Valid @RequestBody MenuItemRequest request,
+                                        @RequestParam("imageFile") MultipartFile imageFile,
+                                        HttpServletRequest httpRequest) throws Exception {
+        Long userId = SessionUtil.getCurrentUserId(httpRequest);
+        MenuItem created = menuItemService.create(request, userId, imageFile);
+        return ApiResponse.ok("Menu item created", created);
     }
 
     @PutMapping("/{id}")
     @RequireRole(Role.ADMIN)
     public ApiResponse<MenuItem> update(@PathVariable Long id, @Valid @RequestBody MenuItemRequest request,
-                                         HttpServletRequest httpRequest) {
-        return ApiResponse.ok("Menu item updated", menuItemService.update(id, request, SessionUtil.getCurrentUserId(httpRequest)));
+                                        @RequestParam("imageFile") MultipartFile imageFile,
+                                        HttpServletRequest httpRequest) throws Exception {
+        Long userId = SessionUtil.getCurrentUserId(httpRequest);
+        MenuItem updated = menuItemService.update(id, request, userId, imageFile);
+        return ApiResponse.ok("Menu item updated", updated);
     }
 
     @DeleteMapping("/{id}")
