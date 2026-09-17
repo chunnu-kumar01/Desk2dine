@@ -151,10 +151,140 @@ function showLoading(show) {
   overlay.classList.toggle("show", !!show);
 }
 
+// ---------- GitHub Pages / Offline Demo Mock Fallback ----------
+const DEMO_CATEGORIES = [
+  { id: 1, name: "Beverages", description: "Hot and cold drinks" },
+  { id: 2, name: "Snacks", description: "Light bites and quick snacks" },
+  { id: 3, name: "Meals", description: "Full plates and heavier items" },
+  { id: 4, name: "Desserts", description: "Something sweet to finish" }
+];
+
+const DEMO_MENU_ITEMS = [
+  { id: 1, categoryId: 1, categoryName: "Beverages", name: "Tea", description: "Classic Indian masala chai", price: 10.00, available: true, isAvailable: true },
+  { id: 2, categoryId: 1, categoryName: "Beverages", name: "Coffee", description: "Filter coffee, hot", price: 20.00, available: true, isAvailable: true },
+  { id: 3, categoryId: 1, categoryName: "Beverages", name: "Cold Coffee", description: "Iced coffee with milk", price: 40.00, available: true, isAvailable: true },
+  { id: 4, categoryId: 2, categoryName: "Snacks", name: "Samosa", description: "Deep-fried pastry with spiced filling", price: 15.00, available: true, isAvailable: true },
+  { id: 5, categoryId: 2, categoryName: "Snacks", name: "Vada Pav", description: "Spiced potato fritter in a bun", price: 25.00, available: true, isAvailable: true },
+  { id: 6, categoryId: 2, categoryName: "Snacks", name: "Sandwich", description: "Grilled vegetable sandwich", price: 35.00, available: true, isAvailable: true },
+  { id: 7, categoryId: 3, categoryName: "Meals", name: "Veg Thali", description: "Full vegetarian meal with rice, dal, and sabzi", price: 90.00, available: true, isAvailable: true },
+  { id: 8, categoryId: 3, categoryName: "Meals", name: "Burger", description: "Veg burger with fries", price: 50.00, available: true, isAvailable: true },
+  { id: 9, categoryId: 3, categoryName: "Meals", name: "Fried Rice", description: "Vegetable fried rice", price: 60.00, available: true, isAvailable: true },
+  { id: 10, categoryId: 4, categoryName: "Desserts", name: "Gulab Jamun (2 pcs)", description: "Deep-fried milk balls in sugar syrup", price: 30.00, available: true, isAvailable: true }
+];
+
+const DEMO_LOCATIONS = [
+  { id: 1, name: "F-204, CSE Block", block: "CSE Block", floor: "2nd Floor" },
+  { id: 2, name: "S-101, Staff Room", block: "Main Block", floor: "1st Floor" },
+  { id: 3, name: "Principal Office", block: "Admin Block", floor: "Ground Floor" },
+  { id: 4, name: "Library Reading Room", block: "Library Block", floor: "1st Floor" },
+  { id: 5, name: "Conference Hall", block: "Main Block", floor: "3rd Floor" }
+];
+
+function handleStaticMock(path, opts) {
+  const method = (opts && opts.method ? opts.method.toUpperCase() : "GET");
+  const cleanPath = path.split("?")[0];
+  const queryString = path.indexOf("?") !== -1 ? path.split("?")[1] : "";
+  const params = new URLSearchParams(queryString);
+
+  if (cleanPath === "/api/categories") {
+    return DEMO_CATEGORIES;
+  }
+  if (cleanPath === "/api/delivery-locations") {
+    return DEMO_LOCATIONS;
+  }
+  if (cleanPath === "/api/auth/me") {
+    const raw = localStorage.getItem("desk2dine_mock_user");
+    if (raw) {
+      try { return JSON.parse(raw); } catch(e){}
+    }
+    return null;
+  }
+  if (cleanPath === "/api/auth/login" || cleanPath === "/api/auth/signup") {
+    let body = {};
+    try { body = JSON.parse(opts.body); } catch(e){}
+    const mockUser = {
+      id: 1,
+      fullName: body.fullName || "Faculty Member",
+      name: body.fullName || "Faculty Member",
+      email: body.email || "faculty@desk2dine.com",
+      role: body.role || "FACULTY"
+    };
+    localStorage.setItem("desk2dine_mock_user", JSON.stringify(mockUser));
+    return mockUser;
+  }
+  if (cleanPath === "/api/auth/logout") {
+    localStorage.removeItem("desk2dine_mock_user");
+    return true;
+  }
+  if (cleanPath === "/api/orders" && method === "POST") {
+    let body = {};
+    try { body = JSON.parse(opts.body); } catch(e){}
+    const orderId = Math.floor(Math.random() * 9000) + 1000;
+    const newOrder = {
+      id: orderId,
+      status: "PLACED",
+      deliveryLocationName: "Campus Location",
+      totalAmount: 120,
+      createdAt: new Date().toISOString()
+    };
+    const stored = JSON.parse(localStorage.getItem("desk2dine_mock_orders") || "[]");
+    stored.unshift(newOrder);
+    localStorage.setItem("desk2dine_mock_orders", JSON.stringify(stored));
+    return newOrder;
+  }
+  if (cleanPath === "/api/orders" && method === "GET") {
+    const stored = JSON.parse(localStorage.getItem("desk2dine_mock_orders") || "[]");
+    return { content: stored, totalElements: stored.length, totalPages: 1 };
+  }
+  if (cleanPath === "/api/menu-items") {
+    let items = [...DEMO_MENU_ITEMS];
+    const catId = params.get("categoryId");
+    if (catId) {
+      items = items.filter(function(it) { return String(it.categoryId) === String(catId); });
+    }
+    const search = params.get("search");
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter(function(it) {
+        return it.name.toLowerCase().includes(q) || it.description.toLowerCase().includes(q);
+      });
+    }
+    const page = parseInt(params.get("page") || "0", 10);
+    const size = parseInt(params.get("size") || "20", 10);
+    const start = page * size;
+    const pageItems = items.slice(start, start + size);
+    return {
+      content: pageItems,
+      totalElements: items.length,
+      totalPages: Math.ceil(items.length / size) || 1,
+      currentPage: page
+    };
+  }
+  if (cleanPath.startsWith("/api/menu-items/")) {
+    const idStr = cleanPath.replace("/api/menu-items/", "");
+    const found = DEMO_MENU_ITEMS.find(function(it) { return String(it.id) === idStr; });
+    if (found) return found;
+    return DEMO_MENU_ITEMS[0];
+  }
+
+  return [];
+}
+
 /**
  * Every fetch() call in the app goes through this wrapper.
  */
 async function api(path, options) {
+  const isGithubPages = window.location.hostname.endsWith("github.io");
+
+  // On GitHub Pages static host, route to mock demo data automatically
+  if (isGithubPages) {
+    try {
+      return handleStaticMock(path, options);
+    } catch(mockErr) {
+      console.warn("Mock API handler error:", mockErr);
+    }
+  }
+
   const opts = Object.assign({ credentials: "same-origin" }, options);
   opts.headers = Object.assign({ "Content-Type": "application/json" }, options && options.headers);
 
@@ -162,7 +292,8 @@ async function api(path, options) {
   try {
     res = await fetch(path, opts);
   } catch (networkError) {
-    throw new Error("Could not reach the server. Please check your connection.");
+    // If backend cannot be reached, fall back to mock demo data so UI stays interactive
+    return handleStaticMock(path, options);
   }
 
   if (res.status === 401) {
@@ -170,6 +301,10 @@ async function api(path, options) {
       window.location.href = "login.html?expired=1";
     }
     throw new Error("Session expired");
+  }
+
+  if (res.status === 404) {
+    return handleStaticMock(path, options);
   }
 
   const body = await res.json().catch(function(){ return {}; });
