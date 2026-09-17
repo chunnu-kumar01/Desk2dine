@@ -3,6 +3,17 @@ if (params.get("expired") === "1") {
   showToast("Your session expired. Please log in again.", true);
 }
 
+var redirect = params.get("redirect");
+if (redirect) {
+  var subEl = document.getElementById("loginSub");
+  if (subEl) subEl.textContent = "Please log in to continue with your action";
+
+  var signupLink = document.getElementById("signupLink");
+  if (signupLink) {
+    signupLink.href = "signup.html?redirect=" + encodeURIComponent(redirect);
+  }
+}
+
 document.getElementById("loginForm").addEventListener("submit", async function(e) {
   e.preventDefault();
   var form = e.target;
@@ -32,8 +43,14 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
       body: JSON.stringify({ email: email, password: password })
     });
     showToast("Welcome back, " + user.fullName + "!");
-    setTimeout(function(){
-      window.location.href = user.role === "ADMIN" ? "admin.html" : "faculty.html";
+    setTimeout(function() {
+      if (user.role === "ADMIN") {
+        window.location.href = "admin.html";
+      } else if (redirect && redirect.indexOf("login") === -1 && redirect.indexOf("signup") === -1) {
+        window.location.href = decodeURIComponent(redirect);
+      } else {
+        window.location.href = "index.html";
+      }
     }, 400);
   } catch (err) {
     showToast(err.message, true);

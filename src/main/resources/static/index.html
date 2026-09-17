@@ -5,63 +5,226 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#2874F0">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
-<title>Desk2Dine</title>
+<title>Desk2Dine — Faculty Canteen Ordering System</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
-<style>
-  .splash-screen{
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:100vh;gap:20px;
-    background:#2874F0;
-  }
-  .splash-brand{
-    display:flex;align-items:center;gap:14px;
-    animation:splashFade .8s ease both;
-  }
-  .splash-icon{
-    width:64px;height:64px;border-radius:12px;
-    background:#FFE11B;
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 4px 16px rgba(0,0,0,0.2);
-  }
-  .splash-icon .material-symbols-outlined{font-size:36px;color:#2874F0;}
-  .splash-text{
-    font-family:'Roboto',sans-serif;font-weight:700;font-size:36px;color:#fff;
-    letter-spacing:-0.5px;
-  }
-  .splash-sub{
-    color:rgba(255,255,255,0.7);font-size:14px;font-weight:500;
-    animation:splashFade .8s ease .2s both;
-  }
-  .splash-spinner{
-    width:36px;height:36px;border-radius:50%;
-    border:3px solid rgba(255,255,255,0.15);border-top-color:#FFE11B;
-    animation:spin .8s linear infinite,splashFade .8s ease .4s both;
-  }
-  @keyframes splashFade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-</style>
 </head>
 <body>
-  <div class="splash-screen">
-    <div class="splash-brand">
-      <div class="splash-icon">
-        <span class="material-symbols-outlined">restaurant</span>
+
+  <!-- Sticky Flipkart-Style Topbar -->
+  <header class="topbar">
+    <a href="index.html" class="brand" style="text-decoration:none;">
+      <span class="brand-icon"><span class="material-symbols-outlined">restaurant</span></span>
+      Desk2Dine <span class="portal-label">Canteen</span>
+    </a>
+
+    <!-- Global Desktop Search Bar -->
+    <div class="topbar-center">
+      <div class="topbar-search-form">
+        <span class="material-symbols-outlined topbar-search-icon">search</span>
+        <input type="text" id="topbarSearchInput" class="topbar-search-input" placeholder="Search for food, snacks, beverages..." autocomplete="off">
+        <button type="button" class="topbar-search-clear" id="topbarSearchClear" title="Clear search">
+          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+        </button>
       </div>
-      <div class="splash-text">Desk2Dine</div>
     </div>
-    <div class="splash-sub">Faculty Canteen Order System</div>
-    <div class="splash-spinner"></div>
-  </div>
+
+    <!-- Header Right Actions -->
+    <div class="topbar-right">
+      <a href="menu.html" class="topbar-nav-link" title="Browse Menu">
+        <span class="material-symbols-outlined">restaurant_menu</span>
+        <span class="nav-text">Menu</span>
+      </a>
+
+      <a href="my-orders.html" class="topbar-nav-link" title="My Orders">
+        <span class="material-symbols-outlined">receipt_long</span>
+        <span class="nav-text">Orders</span>
+      </a>
+
+      <a href="cart.html" class="icon-btn cart-badge" title="View Cart">
+        <span class="material-symbols-outlined">shopping_cart</span>
+        <span class="badge-count topbar-cart-count" style="display:none;"></span>
+      </a>
+
+      <button class="icon-btn" id="notifBtn" title="Notifications" onclick="window.location.href='notifications.html'" style="display:none;">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="badge-dot" id="notifBadge" style="display:none;"></span>
+      </button>
+
+      <span class="topbar-user" id="topbarUserName" style="display:none;"></span>
+
+      <button class="logout-btn" onclick="logout()" style="display:none;">
+        <span class="material-symbols-outlined" style="font-size:18px;">logout</span> Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="page">
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+      <div class="hero-text">
+        <h1>Order your favourite food here</h1>
+        <p>Choose from a diverse canteen menu crafted fresh daily. Enjoy delicious hot meals and snacks delivered straight to your faculty desk or department.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+          <button class="hero-btn" onclick="document.getElementById('completeMenuSection').scrollIntoView({behavior:'smooth'})">
+            <span class="material-symbols-outlined">restaurant_menu</span> View Full Menu
+          </button>
+          <a href="#offersSection" class="btn btn-outline" style="border-color:#fff;color:#fff;background:rgba(255,255,255,0.15);padding:10px 18px;">
+            <span class="material-symbols-outlined">local_offer</span> Today's Offers
+          </a>
+        </div>
+      </div>
+      <div class="hero-image">
+        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&h=500&fit=crop&q=80" alt="Delicious Food">
+      </div>
+    </div>
+
+    <!-- Categories Section -->
+    <div class="section-title">Explore Categories</div>
+    <div class="section-subtitle">Browse through our freshly prepared breakfast, meals, snacks & beverages.</div>
+    <div class="category-chips" id="categoryChips"></div>
+
+    <!-- Offers Section -->
+    <section class="offers-section" id="offersSection">
+      <div class="section-title">Campus Specials & Offers</div>
+      <div class="section-subtitle">Exclusive canteen deals for faculty members today.</div>
+      <div class="offers-grid">
+        <div class="offer-card">
+          <div class="offer-badge">HOT DEAL</div>
+          <div class="offer-icon"><span class="material-symbols-outlined">dinner_dining</span></div>
+          <div class="offer-content">
+            <h4>Special Thali Combo</h4>
+            <p>Full executive meal + Gulab Jamun at ₹90 only. Fresh & hot.</p>
+          </div>
+        </div>
+        <div class="offer-card">
+          <div class="offer-badge">TEA TIME</div>
+          <div class="offer-icon"><span class="material-symbols-outlined">coffee</span></div>
+          <div class="offer-content">
+            <h4>Faculty Tea Break</h4>
+            <p>Hot crispy Samosa + Special Masala Chai combo at only ₹25.</p>
+          </div>
+        </div>
+        <div class="offer-card">
+          <div class="offer-badge">EXPRESS</div>
+          <div class="offer-icon"><span class="material-symbols-outlined">bolt</span></div>
+          <div class="offer-content">
+            <h4>Desk Delivery in 15 Mins</h4>
+            <p>Direct delivery to your department, lab or cabin without delay.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Popular Items Section -->
+    <div style="margin-top:28px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <div>
+          <div class="section-title">Popular Canteen Favorites</div>
+          <div class="section-subtitle">Most loved and fast-moving dishes right now.</div>
+        </div>
+      </div>
+      <div class="horizontal-card-row" id="popularList"></div>
+    </div>
+
+    <!-- Recommended Items Section -->
+    <div style="margin-top:28px;">
+      <div class="section-title">Chef's Recommendations</div>
+      <div class="section-subtitle">Curated specials prepared fresh for you today.</div>
+      <div class="horizontal-card-row" id="recommendedList"></div>
+    </div>
+
+    <!-- Complete Menu Section -->
+    <div id="completeMenuSection" style="margin-top:36px;padding-top:12px;">
+      <div class="section-title">Complete Canteen Menu</div>
+      <div class="section-subtitle">Search, filter and customize your order.</div>
+
+      <!-- Filter Controls -->
+      <div class="filter-row">
+        <div class="search-bar" style="flex:2;">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input type="text" id="searchInput" placeholder="Search for food, snacks, beverages...">
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="categoryFilter"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">category</span> Category</label>
+          <select id="categoryFilter"><option value="">All categories</option></select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="sortBy">Sort by</label>
+          <select id="sortBy">
+            <option value="name">Name</option>
+            <option value="price">Price</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label for="sortDir">Order</label>
+          <select id="sortDir">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="menuList"></div>
+      <div id="pagination"></div>
+    </div>
+
+    <!-- Canteen Information / Trust Badges -->
+    <div class="canteen-info-row">
+      <div class="canteen-info-card">
+        <span class="material-symbols-outlined">schedule</span>
+        <h4>Operating Hours</h4>
+        <p>8:00 AM &ndash; 7:00 PM<br>Mon to Sat</p>
+      </div>
+      <div class="canteen-info-card">
+        <span class="material-symbols-outlined">location_on</span>
+        <h4>Delivery Coverage</h4>
+        <p>All Academic Blocks, Staff Rooms, Dean & HOD Cabins</p>
+      </div>
+      <div class="canteen-info-card">
+        <span class="material-symbols-outlined">sanitizer</span>
+        <h4>Hygiene & Quality</h4>
+        <p>100% RO Water, Fresh Vegetables & Strict Hygiene Standards</p>
+      </div>
+      <div class="canteen-info-card">
+        <span class="material-symbols-outlined">support_agent</span>
+        <h4>Canteen Support</h4>
+        <p>Quick help with orders & special dietary requests</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="index.html" class="mobile-nav-item active">
+        <span class="material-symbols-outlined">home</span>
+        <span>Home</span>
+      </a>
+      <a href="menu.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">restaurant_menu</span>
+        <span>Menu</span>
+      </a>
+      <a href="cart.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">shopping_cart</span>
+        <span>Cart</span>
+      </a>
+      <a href="my-orders.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">receipt_long</span>
+        <span>Orders</span>
+      </a>
+      <a href="profile.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">person</span>
+        <span>Profile</span>
+      </a>
+    </div>
+  </nav>
+
+  <footer class="site-footer">Desk2Dine &copy; 2026 &mdash; Faculty Canteen Order System</footer>
+
+  <div class="toast" id="toast"></div>
+
   <script src="js/common.js"></script>
-  <script>
-    (async function(){
-      try {
-        var user = await api("/api/auth/me", { skipAuthRedirect: true });
-        window.location.href = user.role === "ADMIN" ? "admin.html" : "faculty.html";
-      } catch (e) {
-        window.location.href = "login.html";
-      }
-    })();
-  </script>
+  <script src="js/home.js"></script>
 </body>
 </html>

@@ -1,5 +1,14 @@
 var selectedRole = "FACULTY";
 
+var params = new URLSearchParams(window.location.search);
+var redirect = params.get("redirect");
+if (redirect) {
+  var loginLink = document.getElementById("loginLink");
+  if (loginLink) {
+    loginLink.href = "login.html?redirect=" + encodeURIComponent(redirect);
+  }
+}
+
 document.querySelectorAll(".role-option").forEach(function(el) {
   el.addEventListener("click", function() {
     if (el.style.display === "none" || el.dataset.role !== "FACULTY") return;
@@ -62,7 +71,11 @@ document.getElementById("signupForm").addEventListener("submit", async function(
       body: JSON.stringify({ fullName: fullName, email: email, mobileNumber: mobileNumber, password: password, confirmPassword: confirmPassword, role: "FACULTY" })
     });
     showToast("Account created! Please log in.");
-    setTimeout(function(){ window.location.href = "login.html"; }, 800);
+    setTimeout(function() {
+      var nextUrl = "login.html";
+      if (redirect) nextUrl += "?redirect=" + encodeURIComponent(redirect);
+      window.location.href = nextUrl;
+    }, 800);
   } catch (err) {
     showToast(err.message, true);
     btn.disabled = false;

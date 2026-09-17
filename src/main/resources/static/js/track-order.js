@@ -105,7 +105,7 @@ function renderTrackOrder(order) {
       '<span class="material-symbols-outlined" style="font-size:48px;color:var(--success);">check_circle</span>' +
       '<h2 style="margin:12px 0 4px;">Order Complete!</h2>' +
       '<p style="color:var(--muted);">Thank you for ordering with Desk2Dine.</p>' +
-      '<a href="faculty.html" class="btn btn-primary" style="margin-top:16px;">' +
+      '<a href="index.html" class="btn btn-primary" style="margin-top:16px;">' +
         '<span class="material-symbols-outlined">add_shopping_cart</span> Order Again' +
       '</a>' +
     '</div>';

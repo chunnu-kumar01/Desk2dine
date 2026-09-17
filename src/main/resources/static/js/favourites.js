@@ -9,7 +9,7 @@ function renderSubnav(role) {
       '<a href="menu.html"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>' +
       '<a href="profile.html"><span class="material-symbols-outlined">person</span> Profile</a>';
   } else {
-    subnav.innerHTML = '<a href="faculty.html"><span class="material-symbols-outlined">shopping_cart</span> Place Order</a>' +
+    subnav.innerHTML = '<a href="index.html"><span class="material-symbols-outlined">home</span> Home</a>' +
       '<a href="menu.html"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>' +
       '<a href="favourites.html" class="active"><span class="material-symbols-outlined">favorite</span> Favourites</a>' +
       '<a href="cart.html"><span class="material-symbols-outlined">shopping_cart</span> Cart</a>' +
@@ -29,7 +29,7 @@ function renderMobileNav(role) {
       '</div>';
   } else {
     nav.innerHTML = '<div class="mobile-nav-inner">' +
-      '<a href="faculty.html" class="mobile-nav-item"><span class="material-symbols-outlined">shopping_cart</span><span>Order</span></a>' +
+      '<a href="index.html" class="mobile-nav-item"><span class="material-symbols-outlined">home</span><span>Home</span></a>' +
       '<a href="menu.html" class="mobile-nav-item"><span class="material-symbols-outlined">restaurant_menu</span><span>Menu</span></a>' +
       '<a href="cart.html" class="mobile-nav-item"><span class="material-symbols-outlined">shopping_cart</span><span>Cart</span></a>' +
       '<a href="my-orders.html" class="mobile-nav-item"><span class="material-symbols-outlined">receipt_long</span><span>Orders</span></a>' +

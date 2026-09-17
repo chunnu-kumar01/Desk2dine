@@ -51,6 +51,15 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // Allow public GET requests for browsing menu items, categories, and delivery locations
+        if ("GET".equalsIgnoreCase(request.getMethod())) {
+            if (path.equals("/api/categories") ||
+                path.startsWith("/api/menu-items") ||
+                path.equals("/api/delivery-locations")) {
+                return true;
+            }
+        }
+
         if (!SessionUtil.isLoggedIn(request)) {
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Please log in to continue.");
             return false;
