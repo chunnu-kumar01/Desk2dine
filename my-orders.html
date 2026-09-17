@@ -11,39 +11,66 @@
 </head>
 <body>
 
-  <div class="topbar">
-    <span class="brand">
+  <!-- Topbar -->
+  <header class="topbar">
+    <a href="index.html" class="brand" style="text-decoration:none;">
       <span class="brand-icon"><span class="material-symbols-outlined">restaurant</span></span>
-      Desk2Dine <span class="portal-label">Faculty</span>
-    </span>
+      Desk2Dine <span class="portal-label">Orders</span>
+    </a>
+
+    <div class="topbar-center">
+      <div class="topbar-search-form">
+        <span class="material-symbols-outlined topbar-search-icon">search</span>
+        <input type="text" id="topbarSearchInput" class="topbar-search-input" placeholder="Search menu..." onkeydown="if(event.key==='Enter'){window.location.href='index.html#completeMenuSection';}">
+      </div>
+    </div>
+
     <div class="topbar-right">
+      <a href="menu.html" class="topbar-nav-link" title="Browse Menu">
+        <span class="material-symbols-outlined">restaurant_menu</span>
+        <span class="nav-text">Menu</span>
+      </a>
+
+      <a href="my-orders.html" class="topbar-nav-link active" title="My Orders">
+        <span class="material-symbols-outlined">receipt_long</span>
+        <span class="nav-text">Orders</span>
+      </a>
+
       <a href="cart.html" class="icon-btn cart-badge" title="Cart">
         <span class="material-symbols-outlined">shopping_cart</span>
         <span class="badge-count topbar-cart-count" style="display:none;"></span>
       </a>
-      <button class="icon-btn" onclick="window.location.href='notifications.html'">
+
+      <button class="icon-btn" id="notifBtn" onclick="window.location.href='notifications.html'" style="display:none;">
         <span class="material-symbols-outlined">notifications</span>
         <span class="badge-dot" id="notifBadge" style="display:none;"></span>
       </button>
-      <span class="topbar-user" id="topbarUserName"></span>
-      <button class="logout-btn" onclick="logout()">
-        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">logout</span> Logout
+
+      <span class="topbar-user" id="topbarUserName" style="display:none;"></span>
+
+      <button class="logout-btn" onclick="logout()" style="display:none;">
+        <span class="material-symbols-outlined" style="font-size:18px;">logout</span> Logout
       </button>
     </div>
-  </div>
+  </header>
+
   <div class="subnav">
-    <a href="faculty.html"><span class="material-symbols-outlined">shopping_cart</span> Place Order</a>
+    <a href="index.html"><span class="material-symbols-outlined">home</span> Home</a>
     <a href="menu.html"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>
-    <a href="favourites.html"><span class="material-symbols-outlined">favorite</span> Favourites</a>
     <a href="cart.html"><span class="material-symbols-outlined">shopping_cart</span> Cart</a>
     <a href="my-orders.html" class="active"><span class="material-symbols-outlined">receipt_long</span> My Orders</a>
     <a href="profile.html"><span class="material-symbols-outlined">person</span> Profile</a>
   </div>
 
   <main class="page wide">
-    <h1><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle;">receipt_long</span> My Orders</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h1><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle;">receipt_long</span> My Orders</h1>
+      <a href="index.html" class="btn btn-outline btn-sm">
+        <span class="material-symbols-outlined">home</span> Back to Home
+      </a>
+    </div>
 
-    <div class="filter-row">
+    <div class="filter-row" id="ordersFilterRow" style="display:none;">
       <div class="search-bar" style="flex:2;">
         <span class="material-symbols-outlined search-icon">search</span>
         <input type="text" id="searchInput" placeholder="Search orders...">
@@ -71,9 +98,9 @@
 
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">
-      <a href="faculty.html" class="mobile-nav-item">
-        <span class="material-symbols-outlined">shopping_cart</span>
-        <span>Order</span>
+      <a href="index.html" class="mobile-nav-item">
+        <span class="material-symbols-outlined">home</span>
+        <span>Home</span>
       </a>
       <a href="menu.html" class="mobile-nav-item">
         <span class="material-symbols-outlined">restaurant_menu</span>

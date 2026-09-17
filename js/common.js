@@ -179,35 +179,386 @@ async function api(path, options) {
   return body.data;
 }
 
-/** Call at the top of every protected page to redirect guests to login. */
+/** Safe check for current session without forcing redirect */
+async function getCurrentUser() {
+  try {
+    const user = await api("/api/auth/me", { skipAuthRedirect: true });
+    return user;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Call at the top of protected pages to redirect guests to login with redirect param. */
 async function requireAuth(allowedRoles) {
   try {
     const user = await api("/api/auth/me", { skipAuthRedirect: true });
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-      window.location.href = user.role === "ADMIN" ? "admin.html" : "faculty.html";
+      window.location.href = user.role === "ADMIN" ? "admin.html" : "index.html";
       return null;
     }
     renderTopbarUser(user);
     return user;
   } catch (e) {
-    window.location.href = "login.html";
+    const currentPage = window.location.pathname.split("/").pop() || "index.html";
+    const returnUrl = encodeURIComponent(currentPage + window.location.search);
+    window.location.href = "login.html?redirect=" + returnUrl;
     return null;
   }
 }
 
 function renderTopbarUser(user) {
   const el = document.getElementById("topbarUserName");
-  if (el) el.textContent = user.fullName;
+  const logoutBtn = document.querySelector(".logout-btn");
+  const notifBtn = document.getElementById("notifBtn");
+  const topbarRight = document.querySelector(".topbar-right");
+
+  if (!topbarRight) return;
+
+  const existingLoginBtn = document.getElementById("topbarLoginBtn");
+  if (existingLoginBtn) existingLoginBtn.remove();
+  const existingDropdown = document.getElementById("topbarUserDropdown");
+  if (existingDropdown) existingDropdown.remove();
+
+  if (user) {
+    if (el) {
+      el.textContent = user.fullName;
+      el.style.display = "inline-block";
+    }
+    if (logoutBtn) logoutBtn.style.display = "inline-flex";
+    if (notifBtn) notifBtn.style.display = "inline-flex";
+  } else {
+    if (el) {
+      el.textContent = "";
+      el.style.display = "none";
+    }
+    if (logoutBtn) logoutBtn.style.display = "none";
+    if (notifBtn) notifBtn.style.display = "none";
+
+    const loginBtn = document.createElement("button");
+    loginBtn.id = "topbarLoginBtn";
+    loginBtn.className = "topbar-login-btn";
+    loginBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">login</span> Login';
+    loginBtn.onclick = function() {
+      const currentPage = window.location.pathname.split("/").pop() || "index.html";
+      const returnUrl = currentPage + window.location.search;
+      showAuthModal({
+        title: "Welcome to Desk2Dine",
+        subtitle: "Log in to place orders, track delivery & manage your account",
+        redirectUrl: returnUrl
+      });
+    };
+    topbarRight.appendChild(loginBtn);
+  }
 }
 
 async function logout() {
   try {
     await api("/api/auth/logout", { method: "POST" });
   } catch (e) {
-    // even if the call fails, still send the user back to login
+    // even if the call fails, still clear session
   }
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
+
+// ---------- Auth Modal (Flipkart-style "Login to Continue") ----------
+function showAuthModal(options) {
+  options = options || {};
+  let modal = document.getElementById("authModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "authModal";
+    modal.className = "modal-backdrop";
+    document.body.appendChild(modal);
+  }
+
+  const title = options.title || "Login to continue";
+  const subtitle = options.subtitle || "Please sign in to proceed with your order";
+  const currentPage = window.location.pathname.split("/").pop() || "index.html";
+  const redirectUrl = options.redirectUrl || (currentPage + window.location.search);
+
+  modal.innerHTML =
+    '<div class="modal-card auth-modal-card">' +
+      '<button class="modal-close" onclick="closeAuthModal()" title="Close">&times;</button>' +
+      '<div class="auth-modal-header">' +
+        '<div class="auth-modal-brand"><span class="material-symbols-outlined">restaurant</span> Desk2Dine</div>' +
+        '<h2>' + escapeHtml(title) + '</h2>' +
+        '<p>' + escapeHtml(subtitle) + '</p>' +
+      '</div>' +
+      '<div class="auth-modal-tabs">' +
+        '<button class="auth-tab active" id="authTabLogin" onclick="switchAuthTab(\'login\')">Login</button>' +
+        '<button class="auth-tab" id="authTabSignup" onclick="switchAuthTab(\'signup\')">Create Account</button>' +
+      '</div>' +
+      '<div class="auth-modal-body">' +
+        '<form id="modalLoginForm">' +
+          '<div class="field">' +
+            '<label for="modalLoginEmail">Email</label>' +
+            '<input type="email" id="modalLoginEmail" placeholder="you@college.edu" autocomplete="username" required>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="modalLoginPassword">Password</label>' +
+            '<input type="password" id="modalLoginPassword" placeholder="Your password" autocomplete="current-password" required>' +
+          '</div>' +
+          '<div style="text-align:right; margin:-6px 0 14px;">' +
+            '<a href="forgot-password.html" style="font-size:13px;color:var(--fk-blue);">Forgot password?</a>' +
+          '</div>' +
+          '<button type="submit" class="btn btn-primary btn-block" id="modalLoginBtn">' +
+            '<span class="material-symbols-outlined">login</span> Log In' +
+          '</button>' +
+        '</form>' +
+        '<form id="modalSignupForm" style="display:none;">' +
+          '<div class="field">' +
+            '<label for="modalSignupName">Full Name</label>' +
+            '<input type="text" id="modalSignupName" placeholder="Dr. John Doe" required>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="modalSignupEmail">Email</label>' +
+            '<input type="email" id="modalSignupEmail" placeholder="you@college.edu" required>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="modalSignupMobile">Mobile Number</label>' +
+            '<input type="tel" id="modalSignupMobile" placeholder="10-digit mobile" required>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="modalSignupPassword">Password</label>' +
+            '<input type="password" id="modalSignupPassword" placeholder="Min 8 chars with upper, lower, num & special" required>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="modalSignupConfirmPassword">Confirm Password</label>' +
+            '<input type="password" id="modalSignupConfirmPassword" placeholder="Re-enter password" required>' +
+          '</div>' +
+          '<button type="submit" class="btn btn-primary btn-block" id="modalSignupBtn">' +
+            '<span class="material-symbols-outlined">person_add</span> Create Account' +
+          '</button>' +
+        '</form>' +
+      '</div>' +
+      '<div class="auth-modal-footer">' +
+        '<button type="button" class="btn-link" onclick="closeAuthModal()">Continue browsing as Guest</button>' +
+      '</div>' +
+    '</div>';
+
+  modal.classList.add("show");
+
+  const loginForm = document.getElementById("modalLoginForm");
+  loginForm.onsubmit = async function(e) {
+    e.preventDefault();
+    const email = document.getElementById("modalLoginEmail").value.trim();
+    const password = document.getElementById("modalLoginPassword").value;
+    const btn = document.getElementById("modalLoginBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Logging in...';
+    try {
+      const user = await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: email, password: password })
+      });
+      showToast("Welcome back, " + user.fullName + "!");
+      closeAuthModal();
+      renderTopbarUser(user);
+      if (typeof options.onSuccess === "function") {
+        options.onSuccess(user);
+      } else if (user.role === "ADMIN") {
+        window.location.href = "admin.html";
+      } else if (redirectUrl && redirectUrl !== "login.html") {
+        window.location.href = redirectUrl;
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      showToast(err.message, true);
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined">login</span> Log In';
+    }
+  };
+
+  const signupForm = document.getElementById("modalSignupForm");
+  signupForm.onsubmit = async function(e) {
+    e.preventDefault();
+    const fullName = document.getElementById("modalSignupName").value.trim();
+    const email = document.getElementById("modalSignupEmail").value.trim();
+    const mobileNumber = document.getElementById("modalSignupMobile").value.trim();
+    const password = document.getElementById("modalSignupPassword").value;
+    const confirmPassword = document.getElementById("modalSignupConfirmPassword").value;
+    const btn = document.getElementById("modalSignupBtn");
+
+    if (!isValidEmail(email)) { showToast("Enter a valid email address", true); return; }
+    if (!isValidMobile(mobileNumber)) { showToast("Enter a valid 10-digit mobile number", true); return; }
+    if (!isStrongPassword(password)) { showToast("Password needs upper, lower, number & symbol (min 8 chars)", true); return; }
+    if (password !== confirmPassword) { showToast("Passwords do not match", true); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+    try {
+      await api("/api/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          fullName: fullName,
+          email: email,
+          mobileNumber: mobileNumber,
+          password: password,
+          confirmPassword: confirmPassword,
+          role: "FACULTY"
+        })
+      });
+      showToast("Account created! Logging you in...");
+      const user = await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: email, password: password })
+      });
+      closeAuthModal();
+      renderTopbarUser(user);
+      if (typeof options.onSuccess === "function") {
+        options.onSuccess(user);
+      } else if (redirectUrl && redirectUrl !== "signup.html") {
+        window.location.href = redirectUrl;
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      showToast(err.message, true);
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined">person_add</span> Create Account';
+    }
+  };
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById("authModal");
+  if (modal) modal.classList.remove("show");
+}
+
+function switchAuthTab(tab) {
+  const loginForm = document.getElementById("modalLoginForm");
+  const signupForm = document.getElementById("modalSignupForm");
+  const tabLogin = document.getElementById("authTabLogin");
+  const tabSignup = document.getElementById("authTabSignup");
+  if (!loginForm || !signupForm) return;
+  if (tab === "signup") {
+    loginForm.style.display = "none";
+    signupForm.style.display = "block";
+    tabLogin.classList.remove("active");
+    tabSignup.classList.add("active");
+  } else {
+    signupForm.style.display = "none";
+    loginForm.style.display = "block";
+    tabSignup.classList.remove("active");
+    tabLogin.classList.add("active");
+  }
+}
+
+// ---------- Food Details Modal (Public) ----------
+function showFoodDetailsModal(item) {
+  if (!item) return;
+  let modal = document.getElementById("foodDetailsModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "foodDetailsModal";
+    modal.className = "modal-backdrop";
+    document.body.appendChild(modal);
+  }
+
+  const imgSrc = item.imageUrl || getFoodImage(item.name, item.categoryName);
+  const cart = CartManager.getAll();
+  const currentCartQty = cart[item.id] ? cart[item.id].quantity : 0;
+  let selectedQty = currentCartQty > 0 ? currentCartQty : 1;
+  const isAvailable = item.available !== false;
+
+  modal.innerHTML =
+    '<div class="modal-card food-details-card">' +
+      '<button class="modal-close" onclick="closeFoodDetailsModal()" title="Close">&times;</button>' +
+      '<div class="food-details-grid">' +
+        '<div class="food-details-media">' +
+          '<img src="' + imgSrc + '" alt="' + escapeHtml(item.name) + '" onerror="handleImageError(this)">' +
+          (!isAvailable ? '<span class="food-card-unavailable">Currently Unavailable</span>' : '') +
+        '</div>' +
+        '<div class="food-details-info">' +
+          '<div class="food-details-category">' + escapeHtml(item.categoryName || "Canteen Fresh") + '</div>' +
+          '<h2 class="food-details-title">' + escapeHtml(item.name) + '</h2>' +
+          '<div class="food-details-price">' + formatMoney(item.price) + '</div>' +
+          '<div class="food-details-status ' + (isAvailable ? 'in-stock' : 'out-of-stock') + '">' +
+            '<span class="material-symbols-outlined" style="font-size:18px;">' + (isAvailable ? 'check_circle' : 'cancel') + '</span> ' +
+            (isAvailable ? 'In Stock & Ready to Order' : 'Currently Unavailable') +
+          '</div>' +
+          '<div class="food-details-desc">' +
+            (item.description ? escapeHtml(item.description) : 'Freshly prepared at the faculty canteen with quality ingredients. Hygienic, fast, and delivered right to your desk or department.') +
+          '</div>' +
+          (isAvailable ?
+            '<div class="food-details-stepper-row">' +
+              '<span style="font-weight:500;font-size:14px;color:var(--fk-text-light);">Quantity:</span>' +
+              '<div class="qty-control details-qty-control">' +
+                '<button class="qty-btn" id="modalQtyMinus">&minus;</button>' +
+                '<span class="qty-value" id="modalQtyValue">' + selectedQty + '</span>' +
+                '<button class="qty-btn" id="modalQtyPlus">+</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="food-details-actions">' +
+              '<button class="btn btn-primary" id="modalAddToCartBtn">' +
+                '<span class="material-symbols-outlined">add_shopping_cart</span> Add to Cart' +
+              '</button>' +
+              '<button class="btn btn-success" id="modalBuyNowBtn">' +
+                '<span class="material-symbols-outlined">bolt</span> Order Now' +
+              '</button>' +
+            '</div>'
+          : '<p style="color:var(--fk-red);font-weight:500;margin-top:16px;">This item is currently out of stock. Please check back later.</p>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  modal.classList.add("show");
+
+  if (isAvailable) {
+    const minusBtn = document.getElementById("modalQtyMinus");
+    const plusBtn = document.getElementById("modalQtyPlus");
+    const qtyVal = document.getElementById("modalQtyValue");
+    const addBtn = document.getElementById("modalAddToCartBtn");
+    const buyBtn = document.getElementById("modalBuyNowBtn");
+
+    minusBtn.onclick = function() {
+      if (selectedQty > 1) {
+        selectedQty--;
+        qtyVal.textContent = selectedQty;
+      }
+    };
+    plusBtn.onclick = function() {
+      selectedQty++;
+      qtyVal.textContent = selectedQty;
+    };
+
+    addBtn.onclick = function() {
+      CartManager.addItem(item.id, item.name, item.price, imgSrc, selectedQty);
+      showToast(item.name + " added to cart!");
+      closeFoodDetailsModal();
+      if (typeof loadMenu === "function") loadMenu();
+      if (typeof renderCart === "function") renderCart();
+      if (typeof renderPopularItems === "function") renderPopularItems();
+      if (typeof renderRecommendedItems === "function") renderRecommendedItems();
+    };
+
+    buyBtn.onclick = function() {
+      CartManager.addItem(item.id, item.name, item.price, imgSrc, selectedQty);
+      closeFoodDetailsModal();
+      window.location.href = "cart.html";
+    };
+  }
+}
+
+function closeFoodDetailsModal() {
+  const modal = document.getElementById("foodDetailsModal");
+  if (modal) modal.classList.remove("show");
+}
+
+// Global modal backdrop and key listeners
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    closeAuthModal();
+    closeFoodDetailsModal();
+  }
+});
+document.addEventListener("click", function(e) {
+  if (e.target.classList && e.target.classList.contains("modal-backdrop")) {
+    e.target.classList.remove("show");
+  }
+});
 
 // ---------- Formatting ----------
 function formatMoney(amount) {
@@ -385,7 +736,7 @@ var CartManager = {
 
   updateBadge: function() {
     var count = this.getCount();
-    var badges = document.querySelectorAll(".cart-badge .badge-count, .topbar-cart-count");
+    var badges = document.querySelectorAll(".cart-badge .badge-count, .topbar-cart-count, .mobile-cart-badge, [data-cart-count]");
     badges.forEach(function(el) {
       el.textContent = count;
       el.style.display = count > 0 ? "flex" : "none";
@@ -393,6 +744,7 @@ var CartManager = {
       void el.offsetWidth;
       el.classList.add("badge-bounce");
     });
+    window.dispatchEvent(new CustomEvent("cartUpdated", { detail: { count: count } }));
   },
 
   getItemsArray: function() {

@@ -1,6 +1,8 @@
+let currentUser = null;
 let currentPage = 0;
 const PAGE_SIZE = 8;
 let favouriteIds = new Set();
+let categories = [];
 
 function renderSubnav(role) {
   var subnav = document.getElementById("subnav");
@@ -8,17 +10,23 @@ function renderSubnav(role) {
   var cartIcon = document.getElementById("cartIcon");
   if (portalLabel) portalLabel.textContent = role === "ADMIN" ? "Admin" : "Faculty";
   if (cartIcon) cartIcon.style.display = role === "ADMIN" ? "none" : "";
+
   if (role === "ADMIN") {
     subnav.innerHTML = '<a href="admin.html"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>' +
       '<a href="menu.html" class="active"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>' +
       '<a href="profile.html"><span class="material-symbols-outlined">person</span> Profile</a>';
-  } else {
-    subnav.innerHTML = '<a href="faculty.html"><span class="material-symbols-outlined">shopping_cart</span> Place Order</a>' +
+  } else if (role === "FACULTY") {
+    subnav.innerHTML = '<a href="index.html"><span class="material-symbols-outlined">home</span> Home</a>' +
       '<a href="menu.html" class="active"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>' +
       '<a href="favourites.html"><span class="material-symbols-outlined">favorite</span> Favourites</a>' +
       '<a href="cart.html"><span class="material-symbols-outlined">shopping_cart</span> Cart</a>' +
       '<a href="my-orders.html"><span class="material-symbols-outlined">receipt_long</span> My Orders</a>' +
       '<a href="profile.html"><span class="material-symbols-outlined">person</span> Profile</a>';
+  } else {
+    subnav.innerHTML = '<a href="index.html"><span class="material-symbols-outlined">home</span> Home</a>' +
+      '<a href="menu.html" class="active"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>' +
+      '<a href="cart.html"><span class="material-symbols-outlined">shopping_cart</span> Cart</a>' +
+      '<a href="login.html" onclick="if(window.showAuthModal){event.preventDefault();showAuthModal();}"><span class="material-symbols-outlined">login</span> Login</a>';
   }
 }
 
@@ -33,7 +41,7 @@ function renderMobileNav(role) {
       '</div>';
   } else {
     nav.innerHTML = '<div class="mobile-nav-inner">' +
-      '<a href="faculty.html" class="mobile-nav-item"><span class="material-symbols-outlined">shopping_cart</span><span>Order</span></a>' +
+      '<a href="index.html" class="mobile-nav-item"><span class="material-symbols-outlined">home</span><span>Home</span></a>' +
       '<a href="menu.html" class="mobile-nav-item active"><span class="material-symbols-outlined">restaurant_menu</span><span>Menu</span></a>' +
       '<a href="cart.html" class="mobile-nav-item"><span class="material-symbols-outlined">shopping_cart</span><span>Cart</span></a>' +
       '<a href="my-orders.html" class="mobile-nav-item"><span class="material-symbols-outlined">receipt_long</span><span>Orders</span></a>' +
@@ -43,33 +51,84 @@ function renderMobileNav(role) {
 }
 
 async function init() {
-  const user = await requireAuth();
-  if (!user) return;
-  renderSubnav(user.role);
-  renderMobileNav(user.role);
+  currentUser = await getCurrentUser();
+  renderTopbarUser(currentUser);
+  CartManager.updateBadge();
+
+  renderSubnav(currentUser ? currentUser.role : null);
+  renderMobileNav(currentUser ? currentUser.role : null);
 
   // Show skeletons while loading
   renderFoodSkeletons(document.getElementById("menuList"), 8);
 
-  await Promise.all([loadCategories(), loadFavourites(), refreshNotifBadge()]);
+  const promises = [loadCategories()];
+  if (currentUser) {
+    promises.push(loadFavourites(), refreshNotifBadge());
+  }
+  await Promise.all(promises);
   await loadMenu();
 
-  ["searchInput"].forEach(function(id){ document.getElementById(id).addEventListener("input", debounce(function(){ currentPage = 0; loadMenu(); }, 350)); });
-  ["categoryFilter", "sortBy", "sortDir"].forEach(function(id){ document.getElementById(id).addEventListener("change", function(){ currentPage = 0; loadMenu(); }); });
+  // Wire search inputs
+  const topbarSearch = document.getElementById("topbarSearchInput");
+  const topbarClear = document.getElementById("topbarSearchClear");
+  const mainSearch = document.getElementById("searchInput");
+
+  if (topbarSearch) {
+    topbarSearch.addEventListener("input", debounce(function(e) {
+      if (topbarClear) topbarClear.style.display = e.target.value ? "flex" : "none";
+      if (mainSearch) mainSearch.value = e.target.value;
+      currentPage = 0;
+      loadMenu();
+    }, 350));
+  }
+
+  if (topbarClear && topbarSearch) {
+    topbarClear.addEventListener("click", function() {
+      topbarSearch.value = "";
+      topbarClear.style.display = "none";
+      if (mainSearch) mainSearch.value = "";
+      currentPage = 0;
+      loadMenu();
+    });
+  }
+
+  if (mainSearch) {
+    mainSearch.addEventListener("input", debounce(function(e) {
+      if (topbarSearch) topbarSearch.value = e.target.value;
+      if (topbarClear) topbarClear.style.display = e.target.value ? "flex" : "none";
+      currentPage = 0;
+      loadMenu();
+    }, 350));
+  }
+
+  ["categoryFilter", "sortBy", "sortDir"].forEach(function(id){
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", function(){ currentPage = 0; loadMenu(); });
+  });
+
+  window.addEventListener("cartUpdated", function() {
+    loadMenu();
+  });
 }
 
 function debounce(fn, delay) {
   let timer;
-  return function(){ clearTimeout(timer); timer = setTimeout(function(){ fn(); }, delay); };
+  return function(){
+    clearTimeout(timer);
+    const args = arguments;
+    timer = setTimeout(function(){ fn.apply(null, args); }, delay);
+  };
 }
 
 async function loadCategories() {
   try {
-    const categories = await api("/api/categories");
+    categories = await api("/api/categories");
     const select = document.getElementById("categoryFilter");
-    select.innerHTML = '<option value="">All categories</option>' +
-        categories.map(function(c){ return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>'; }).join("");
-  } catch (e) { showToast(e.message, true); }
+    if (select) {
+      select.innerHTML = '<option value="">All categories</option>' +
+          categories.map(function(c){ return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>'; }).join("");
+    }
+  } catch (e) { console.error(e); }
 }
 
 async function loadFavourites() {
@@ -83,21 +142,38 @@ async function refreshNotifBadge() {
   try {
     const result = await api("/api/notifications/unread-count");
     const badge = document.getElementById("notifBadge");
-    if (result.unread > 0) { badge.style.display = "flex"; badge.textContent = result.unread > 9 ? "9+" : result.unread; }
+    if (badge && result.unread > 0) {
+      badge.style.display = "flex";
+      badge.textContent = result.unread > 9 ? "9+" : result.unread;
+    } else if (badge) {
+      badge.style.display = "none";
+    }
   } catch (e) { /* non-critical */ }
 }
 
 async function loadMenu() {
-  const search = document.getElementById("searchInput").value.trim();
-  const categoryId = document.getElementById("categoryFilter").value;
-  const sortBy = document.getElementById("sortBy").value;
-  const sortDir = document.getElementById("sortDir").value;
+  const searchInput = document.getElementById("searchInput");
+  const topbarSearch = document.getElementById("topbarSearchInput");
+  const search = (searchInput ? searchInput.value : "") || (topbarSearch ? topbarSearch.value : "");
+  const catFilter = document.getElementById("categoryFilter");
+  const categoryId = catFilter ? catFilter.value : "";
+  const sortByEl = document.getElementById("sortBy");
+  const sortBy = sortByEl ? sortByEl.value : "name";
+  const sortDirEl = document.getElementById("sortDir");
+  const sortDir = sortDirEl ? sortDirEl.value : "asc";
 
   try {
-    const result = await api("/api/menu-items?search=" + encodeURIComponent(search) + "&categoryId=" + categoryId +
-        "&sortBy=" + sortBy + "&sortDir=" + sortDir + "&page=" + currentPage + "&size=" + PAGE_SIZE);
+    const result = await api("/api/menu-items?search=" + encodeURIComponent(search.trim()) +
+      "&categoryId=" + encodeURIComponent(categoryId) +
+      "&sortBy=" + encodeURIComponent(sortBy) +
+      "&sortDir=" + encodeURIComponent(sortDir) +
+      "&page=" + currentPage + "&size=" + PAGE_SIZE);
+
     renderMenu(result.content);
-    renderPagination(document.getElementById("pagination"), result.page, result.totalPages, function(p) { currentPage = p; loadMenu(); });
+    renderPagination(document.getElementById("pagination"), result.page, result.totalPages, function(p) {
+      currentPage = p;
+      loadMenu();
+    });
     setTimeout(initScrollAnimations, 100);
   } catch (e) {
     showToast(e.message, true);
@@ -106,38 +182,48 @@ async function loadMenu() {
 
 function renderMenu(items) {
   const list = document.getElementById("menuList");
-if (!items || items.length === 0) {
-  list.innerHTML = '<div class="empty-state"><div class="empty-icon"><span class="material-symbols-outlined">search_off</span></div><div class="big">No items found</div><p>Try a different search or category.</p></div>';
+  if (!list) return;
+
+  if (!items || items.length === 0) {
+    list.innerHTML =
+      '<div class="empty-state">' +
+        '<div class="empty-icon"><span class="material-symbols-outlined">search_off</span></div>' +
+        '<div class="big">No items found</div>' +
+        '<p>Try a different search or category.</p>' +
+      '</div>';
     return;
   }
+
+  const cart = CartManager.getAll();
   list.innerHTML = items.map(function(item) {
     const isFav = favouriteIds.has(item.id);
-    const imgSrc = getFoodImage(item.name, item.categoryName);
-    const rating = (Math.random() * 1.5 + 3.5).toFixed(1);
-    let starsHtml = '';
-    const full = Math.floor(parseFloat(rating));
-    const half = parseFloat(rating) % 1 >= 0.5 ? 1 : 0;
-    const empty = 5 - full - half;
-    for (let i = 0; i < full; i++) starsHtml += '<span class="material-symbols-outlined star">star</span>';
-    if (half) starsHtml += '<span class="material-symbols-outlined star">star_half</span>';
-    for (let i = 0; i < empty; i++) starsHtml += '<span class="material-symbols-outlined star empty">star</span>';
-    const cart = CartManager.getAll();
+    const imgSrc = item.imageUrl || getFoodImage(item.name, item.categoryName);
     const qty = cart[item.id] ? cart[item.id].quantity : 0;
-    return '<div class="food-card">' +
-        '<div class="food-card-img-wrap">' +
+    const isAvailable = item.available !== false;
+    const itemJson = escapeHtml(JSON.stringify({
+      id: item.id,
+      name: item.name,
+      categoryName: item.categoryName || "",
+      price: item.price,
+      imageUrl: imgSrc,
+      description: item.description || "",
+      available: isAvailable
+    }));
+
+    return '<div class="food-card" data-item-id="' + item.id + '">' +
+        '<div class="food-card-img-wrap" onclick=\'openCardModal(' + itemJson + ')\'>' +
           '<img class="food-card-img" src="' + imgSrc + '" alt="' + escapeHtml(item.name) + '" loading="lazy" onerror="handleImageError(this)">' +
-          (item.available === false ? '<span class="food-card-unavailable">Unavailable</span>' : '') +
-          '<button class="food-card-fav ' + (isFav ? "active" : "") + '" onclick="toggleFavourite(' + item.id + ', this)" title="Favourite">' +
+          (!isAvailable ? '<span class="food-card-unavailable">Unavailable</span>' : '') +
+          '<button class="food-card-fav ' + (isFav ? "active" : "") + '" onclick="event.stopPropagation();toggleFavourite(' + item.id + ', this)" title="Favourite">' +
             '<span class="material-symbols-outlined">' + (isFav ? 'favorite' : 'favorite_border') + '</span>' +
           '</button>' +
         '</div>' +
         '<div class="food-card-body">' +
-          '<div class="food-card-name">' + escapeHtml(item.name) + '</div>' +
-          '<div class="food-card-rating">' + starsHtml + '<span class="rating-text">' + rating + '</span></div>' +
+          '<div class="food-card-name" onclick=\'openCardModal(' + itemJson + ')\'>' + escapeHtml(item.name) + '</div>' +
           (item.description ? '<div class="food-card-desc">' + escapeHtml(item.description) + '</div>' : "") +
           '<div class="food-card-price">' + formatMoney(item.price) + '</div>' +
         '</div>' +
-        (item.available !== false ?
+        (isAvailable ?
           '<div class="food-card-footer">' +
             (qty > 0
               ? '<div class="qty-control">' +
@@ -149,9 +235,14 @@ if (!items || items.length === 0) {
                   '<span class="material-symbols-outlined">add_shopping_cart</span> ADD' +
                 '</button>'
             ) +
-          '</div>' : '') +
+          '</div>' :
+          '<div class="food-card-footer"><span style="font-size:12px;color:var(--fk-red);font-weight:600;">Out of Stock</span></div>') +
       '</div>';
   }).join("");
+}
+
+function openCardModal(itemObj) {
+  showFoodDetailsModal(itemObj);
 }
 
 function escapeJs(str) {
@@ -167,8 +258,8 @@ function addToCart(id, name, price, img, btn) {
     btn.classList.add("added");
     btn.innerHTML = '<span class="material-symbols-outlined">check</span> ADDED';
     showToast(name + " added to cart");
-    setTimeout(function() { loadMenu(); }, 500);
-  }, 400);
+    setTimeout(function() { loadMenu(); }, 400);
+  }, 250);
 }
 
 function changeQty(id, delta) {
@@ -177,6 +268,13 @@ function changeQty(id, delta) {
 }
 
 async function toggleFavourite(menuItemId, btn) {
+  if (!currentUser) {
+    showAuthModal({
+      title: "Login to save favourites",
+      subtitle: "Sign in with your faculty account to favorite items."
+    });
+    return;
+  }
   try {
     if (favouriteIds.has(menuItemId)) {
       await api("/api/favourites/" + menuItemId, { method: "DELETE" });

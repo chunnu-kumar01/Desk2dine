@@ -13,7 +13,7 @@ function renderSubnav(role) {
       '<a href="my-orders.html"><span class="material-symbols-outlined">receipt_long</span> Back to Orders</a>';
   } else {
     subnav.innerHTML =
-      '<a href="faculty.html"><span class="material-symbols-outlined">shopping_cart</span> Place Order</a>' +
+      '<a href="index.html"><span class="material-symbols-outlined">home</span> Home</a>' +
       '<a href="menu.html"><span class="material-symbols-outlined">restaurant_menu</span> Browse Menu</a>' +
       '<a href="favourites.html"><span class="material-symbols-outlined">favorite</span> Favourites</a>' +
       '<a href="cart.html"><span class="material-symbols-outlined">shopping_cart</span> Cart</a>' +
