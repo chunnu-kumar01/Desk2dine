@@ -8,11 +8,19 @@ const PAGE_SIZE = 8;
 let categories = [];
 let allMenuItems = [];
 
+// Carousel State
+let currentSlide = 0;
+let carouselTimer = null;
+const totalSlides = 3;
+
 async function initHome() {
   // Check if logged in (does NOT force redirect)
   currentUser = await getCurrentUser();
   renderTopbarUser(currentUser);
   CartManager.updateBadge();
+
+  // Initialize Hero Carousel
+  initHeroCarousel();
 
   // Show skeleton loading states
   renderFoodSkeletons(document.getElementById("popularList"), 4);
@@ -57,6 +65,19 @@ async function initHome() {
     }, 300));
   }
 
+  // Wire mobile search input → same pipeline
+  const mobileInput = document.getElementById("mobileSearchInput");
+  if (mobileInput) {
+    mobileInput.addEventListener("input", debounce(function(e) {
+      const val = e.target.value;
+      if (topbarSearch) topbarSearch.value = val;
+      if (mainSearch) mainSearch.value = val;
+      if (topbarClear) topbarClear.style.display = val ? "flex" : "none";
+      currentPage = 0;
+      loadMenu(val.length > 0 || true);
+    }, 300));
+  }
+
   const catFilter = document.getElementById("categoryFilter");
   if (catFilter) {
     catFilter.addEventListener("change", function() {
@@ -70,12 +91,73 @@ async function initHome() {
   if (sortBy) sortBy.addEventListener("change", function(){ currentPage = 0; loadMenu(false); });
   if (sortDir) sortDir.addEventListener("change", function(){ currentPage = 0; loadMenu(false); });
 
-  // Listen to CartManager updates to keep all button states synced
+  // Listen to CartManager updates to keep card steppers synced
   window.addEventListener("cartUpdated", function() {
-    renderPopularItems();
-    renderRecommendedItems();
-    updateMenuCardQuantities();
+    syncAllCardQuantities();
   });
+}
+
+// ---------- Mobile Search Toggle ----------
+function toggleMobileSearch() {
+  const bar = document.getElementById("mobileSearchBar");
+  const input = document.getElementById("mobileSearchInput");
+  if (!bar) return;
+  const isOpen = bar.classList.contains("open");
+  if (isOpen) {
+    bar.classList.remove("open");
+    bar.setAttribute("aria-hidden", "true");
+    if (input) input.blur();
+  } else {
+    bar.classList.add("open");
+    bar.setAttribute("aria-hidden", "false");
+    if (input) { input.focus(); }
+  }
+}
+
+// ---------- Hero Carousel Controller ----------
+function initHeroCarousel() {
+  const slides = document.getElementById("heroSlides");
+  const dots = document.querySelectorAll(".hero-carousel-dot");
+  const prevBtn = document.getElementById("heroPrevBtn");
+  const nextBtn = document.getElementById("heroNextBtn");
+  const carousel = document.getElementById("heroCarousel");
+  if (!slides || !dots.length) return;
+
+  function goToSlide(index) {
+    currentSlide = (index + totalSlides) % totalSlides;
+    slides.style.transform = "translateX(-" + (currentSlide * 100) + "%)";
+    dots.forEach(function(dot, i) {
+      dot.classList.toggle("active", i === currentSlide);
+    });
+  }
+
+  if (prevBtn) prevBtn.onclick = function() { goToSlide(currentSlide - 1); };
+  if (nextBtn) nextBtn.onclick = function() { goToSlide(currentSlide + 1); };
+
+  dots.forEach(function(dot, i) {
+    dot.onclick = function() { goToSlide(i); };
+  });
+
+  function startAutoSlide() {
+    stopAutoSlide();
+    carouselTimer = setInterval(function() {
+      goToSlide(currentSlide + 1);
+    }, 5000);
+  }
+
+  function stopAutoSlide() {
+    if (carouselTimer) {
+      clearInterval(carouselTimer);
+      carouselTimer = null;
+    }
+  }
+
+  if (carousel) {
+    carousel.addEventListener("mouseenter", stopAutoSlide);
+    carousel.addEventListener("mouseleave", startAutoSlide);
+  }
+
+  startAutoSlide();
 }
 
 function debounce(fn, delay) {
@@ -123,7 +205,15 @@ function renderCategoryChips() {
 
 function filterByCategory(catId, chipEl) {
   document.querySelectorAll('.category-chip').forEach(function(c){ c.classList.remove('active'); });
-  if (chipEl) chipEl.classList.add('active');
+  if (chipEl) {
+    chipEl.classList.add('active');
+  } else if (catId !== undefined && catId !== "") {
+    const match = document.querySelector('.category-chip[data-cat-id="' + catId + '"]');
+    if (match) match.classList.add('active');
+  } else {
+    const allChip = document.querySelector('.category-chip[data-cat-id=""]');
+    if (allChip) allChip.classList.add('active');
+  }
 
   const catFilter = document.getElementById("categoryFilter");
   if (catFilter) catFilter.value = catId || "";
@@ -134,8 +224,7 @@ function filterByCategory(catId, chipEl) {
 
 async function loadFeaturedAndMenu() {
   try {
-    // Fetch available items to populate popular, recommended, and initial menu
-    const result = await api("/api/menu-items?onlyAvailable=true&page=0&size=30");
+    const result = await api("/api/menu-items?page=0&size=30");
     allMenuItems = result.content || [];
 
     renderPopularItems();
@@ -165,7 +254,7 @@ function renderPopularItems() {
 
   const cart = CartManager.getAll();
   container.innerHTML = popular.map(function(item) {
-    return createFoodCardHtml(item, cart, "popular");
+    return renderFoodCardHtml(item, cart, { showFav: false });
   }).join("");
 }
 
@@ -181,7 +270,7 @@ function renderRecommendedItems() {
 
   const cart = CartManager.getAll();
   container.innerHTML = recommended.map(function(item) {
-    return createFoodCardHtml(item, cart, "recommended");
+    return renderFoodCardHtml(item, cart, { showFav: false });
   }).join("");
 }
 
@@ -199,7 +288,7 @@ async function loadMenu(scrollToMenu) {
   try {
     const query = "/api/menu-items?search=" + encodeURIComponent(search.trim()) +
       "&categoryId=" + encodeURIComponent(categoryId) +
-      "&onlyAvailable=false&sortBy=" + encodeURIComponent(sortBy) +
+      "&sortBy=" + encodeURIComponent(sortBy) +
       "&sortDir=" + encodeURIComponent(sortDir) +
       "&page=" + currentPage + "&size=" + PAGE_SIZE;
 
@@ -227,7 +316,7 @@ function renderMenuList(items) {
 
   if (!items || items.length === 0) {
     list.innerHTML =
-      '<div class="empty-state">' +
+      '<div class="empty-state" style="grid-column: 1 / -1;">' +
         '<div class="empty-icon"><span class="material-symbols-outlined">search_off</span></div>' +
         '<div class="big">No food items found</div>' +
         '<p>Try searching with another keyword or pick a different category.</p>' +
@@ -237,109 +326,10 @@ function renderMenuList(items) {
 
   const cart = CartManager.getAll();
   list.innerHTML = items.map(function(item) {
-    return createFoodCardHtml(item, cart, "menu");
+    return renderFoodCardHtml(item, cart, { showFav: false });
   }).join("");
 
   setTimeout(initScrollAnimations, 100);
-}
-
-function createFoodCardHtml(item, cart, prefix) {
-  const qty = cart[item.id] ? cart[item.id].quantity : 0;
-  const imgSrc = item.imageUrl || getFoodImage(item.name, item.categoryName);
-  const isAvailable = item.available !== false;
-  const itemJson = escapeHtml(JSON.stringify({
-    id: item.id,
-    name: item.name,
-    categoryName: item.categoryName || "",
-    price: item.price,
-    imageUrl: imgSrc,
-    description: item.description || "",
-    available: isAvailable
-  }));
-
-  return '<div class="food-card" data-item-id="' + item.id + '">' +
-    '<div class="food-card-img-wrap" onclick=\'openCardModal(' + itemJson + ')\'>' +
-      '<img class="food-card-img" src="' + imgSrc + '" alt="' + escapeHtml(item.name) + '" loading="lazy" onerror="handleImageError(this)">' +
-      (!isAvailable ? '<span class="food-card-unavailable">Unavailable</span>' : '') +
-    '</div>' +
-    '<div class="food-card-body">' +
-      '<div class="food-card-name" onclick=\'openCardModal(' + itemJson + ')\'>' + escapeHtml(item.name) + '</div>' +
-      (item.description ? '<div class="food-card-desc">' + escapeHtml(item.description) + '</div>' : '') +
-      '<div class="food-card-price">' + formatMoney(item.price) + '</div>' +
-    '</div>' +
-    (isAvailable ?
-      '<div class="food-card-footer">' +
-        (qty > 0
-          ? '<div class="qty-control">' +
-              '<button class="qty-btn" onclick="handleCardQtyChange(' + item.id + ', -1)">&minus;</button>' +
-              '<span class="qty-value">' + qty + '</span>' +
-              '<button class="qty-btn" onclick="handleCardQtyChange(' + item.id + ', 1)">+</button>' +
-            '</div>'
-          : '<button class="btn-add-item" onclick="handleCardAddToCart(' + item.id + ', \'' + escapeJs(item.name) + '\', ' + item.price + ', \'' + imgSrc + '\', this)">' +
-              '<span class="material-symbols-outlined">add_shopping_cart</span> ADD' +
-            '</button>'
-        ) +
-      '</div>'
-    : '<div class="food-card-footer"><span style="font-size:12px;color:var(--fk-red);font-weight:600;">Out of Stock</span></div>') +
-  '</div>';
-}
-
-function openCardModal(itemObj) {
-  showFoodDetailsModal(itemObj);
-}
-
-function handleCardAddToCart(id, name, price, img, btn) {
-  btn.classList.add("adding");
-  btn.innerHTML = '<span class="spinner"></span>';
-  setTimeout(function() {
-    CartManager.addItem(id, name, price, img, 1);
-    btn.classList.remove("adding");
-    btn.classList.add("added");
-    btn.innerHTML = '<span class="material-symbols-outlined">check</span> ADDED';
-    showToast(name + " added to cart");
-  }, 250);
-}
-
-function handleCardQtyChange(id, delta) {
-  CartManager.changeQty(id, delta);
-}
-
-function updateMenuCardQuantities() {
-  const cart = CartManager.getAll();
-  document.querySelectorAll(".food-card").forEach(function(card) {
-    const id = card.dataset.itemId;
-    if (!id) return;
-    const qty = cart[id] ? cart[id].quantity : 0;
-    const footer = card.querySelector(".food-card-footer");
-    if (!footer) return;
-
-    if (card.querySelector(".food-card-unavailable")) return;
-
-    const nameEl = card.querySelector(".food-card-name");
-    const name = nameEl ? nameEl.textContent : "Item";
-    const imgEl = card.querySelector(".food-card-img");
-    const imgSrc = imgEl ? imgEl.src : "";
-    const priceEl = card.querySelector(".food-card-price");
-    const price = priceEl ? parseFloat(priceEl.textContent.replace(/[^\d.]/g, "")) || 0 : 0;
-
-    if (qty > 0) {
-      footer.innerHTML =
-        '<div class="qty-control">' +
-          '<button class="qty-btn" onclick="handleCardQtyChange(' + id + ', -1)">&minus;</button>' +
-          '<span class="qty-value">' + qty + '</span>' +
-          '<button class="qty-btn" onclick="handleCardQtyChange(' + id + ', 1)">+</button>' +
-        '</div>';
-    } else {
-      footer.innerHTML =
-        '<button class="btn-add-item" onclick="handleCardAddToCart(' + id + ', \'' + escapeJs(name) + '\', ' + price + ', \'' + imgSrc + '\', this)">' +
-          '<span class="material-symbols-outlined">add_shopping_cart</span> ADD' +
-        '</button>';
-    }
-  });
-}
-
-function escapeJs(str) {
-  return String(str).replace(/'/g, "\\'").replace(/\\/g, '\\\\');
 }
 
 // Initialize on DOM load

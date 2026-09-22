@@ -581,6 +581,144 @@ function switchAuthTab(tab) {
   }
 }
 
+// ---------- Dietary, Rating & Pricing Helpers ----------
+function isVegetarian(itemName, categoryName) {
+  const name = (itemName || "").toLowerCase();
+  const cat = (categoryName || "").toLowerCase();
+  const nonVegKeywords = ["chicken", "egg", "fish", "meat", "mutton", "prawn", "crab", "non-veg"];
+  for (let i = 0; i < nonVegKeywords.length; i++) {
+    if (name.includes(nonVegKeywords[i]) || cat.includes(nonVegKeywords[i])) return false;
+  }
+  return true;
+}
+
+function getItemRating(id) {
+  const ratings = ["4.3", "4.5", "4.2", "4.6", "4.4", "4.7", "4.1", "4.8"];
+  const counts = ["120", "245", "89", "310", "154", "420", "95", "280"];
+  const idx = Math.abs(id || 1) % ratings.length;
+  return { rating: ratings[idx], count: counts[idx] };
+}
+
+function getItemMrp(price) {
+  const p = Number(price || 0);
+  const mrp = Math.round(p * 1.25);
+  const discount = Math.round(((mrp - p) / mrp) * 100);
+  return { mrp: mrp, discount: discount > 0 ? discount + "% OFF" : "" };
+}
+
+function escapeJs(str) {
+  return String(str).replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+}
+
+// ---------- Unified Food Card Component ----------
+function renderCardButtonHtml(itemId, name, price, imgSrc, qty, isAvailable) {
+  if (!isAvailable) {
+    return '<span style="font-size:12px;color:var(--fk-red);font-weight:600;">Out of Stock</span>';
+  }
+  if (qty > 0) {
+    return '<div class="qty-control" data-item-id="' + itemId + '">' +
+      '<button class="qty-btn" onclick="event.stopPropagation();handleCardQtyChange(' + itemId + ', -1)" title="Decrease quantity">&minus;</button>' +
+      '<span class="qty-value">' + qty + '</span>' +
+      '<button class="qty-btn" onclick="event.stopPropagation();handleCardQtyChange(' + itemId + ', 1)" title="Increase quantity">+</button>' +
+    '</div>';
+  }
+  return '<button class="btn-add-item" data-item-id="' + itemId + '" onclick="event.stopPropagation();handleCardAddToCart(' + itemId + ', \'' + escapeJs(name) + '\', ' + price + ', \'' + imgSrc + '\', this)">' +
+    '<span class="material-symbols-outlined">add</span> ADD' +
+  '</button>';
+}
+
+function renderFoodCardHtml(item, cart, options) {
+  const opts = options || {};
+  const qty = cart && cart[item.id] ? cart[item.id].quantity : 0;
+  const imgSrc = item.imageUrl || getFoodImage(item.name, item.categoryName);
+  const isAvailable = item.available !== false;
+  const isVeg = isVegetarian(item.name, item.categoryName);
+  const ratingInfo = getItemRating(item.id);
+  const mrpInfo = getItemMrp(item.price);
+  const isFav = opts.favouriteIds ? opts.favouriteIds.has(item.id) : false;
+
+  const itemJson = escapeHtml(JSON.stringify({
+    id: item.id,
+    name: item.name,
+    categoryName: item.categoryName || "",
+    price: item.price,
+    imageUrl: imgSrc,
+    description: item.description || "",
+    available: isAvailable
+  }));
+
+  return '<div class="food-card" data-item-id="' + item.id + '">' +
+    '<div class="food-card-img-wrap" onclick=\'openCardModal(' + itemJson + ')\'>' +
+      '<img class="food-card-img" src="' + imgSrc + '" alt="' + escapeHtml(item.name) + '" loading="lazy" onerror="handleImageError(this)">' +
+      (!isAvailable ? '<span class="food-card-unavailable">Unavailable</span>' : '') +
+      (opts.showFav ?
+        '<button class="food-card-fav ' + (isFav ? "active" : "") + '" onclick="event.stopPropagation();' + (opts.onRemoveFav ? opts.onRemoveFav : 'toggleFavourite(' + item.id + ', this)') + '" title="' + (opts.onRemoveFav ? 'Remove from favourites' : 'Favourite') + '">' +
+          '<span class="material-symbols-outlined">' + (isFav ? "favorite" : "favorite_border") + '</span>' +
+        '</button>' : '') +
+    '</div>' +
+    '<div class="food-card-body">' +
+      '<div class="food-card-header-row">' +
+        '<span class="diet-badge ' + (isVeg ? "veg" : "non-veg") + '" title="' + (isVeg ? "Vegetarian" : "Non-Vegetarian") + '">' +
+          '<span class="diet-dot"></span>' +
+        '</span>' +
+        '<span class="food-rating-pill">' +
+          '<span>' + ratingInfo.rating + '</span>' +
+          '<span class="material-symbols-outlined star-icon">star</span>' +
+        '</span>' +
+      '</div>' +
+      '<div class="food-card-name" onclick=\'openCardModal(' + itemJson + ')\'>' + escapeHtml(item.name) + '</div>' +
+      (item.description ? '<div class="food-card-desc">' + escapeHtml(item.description) + '</div>' : '') +
+      '<div class="food-pricing-row">' +
+        '<span class="food-card-price">' + formatMoney(item.price) + '</span>' +
+        '<span class="food-card-mrp">' + formatMoney(mrpInfo.mrp) + '</span>' +
+        '<span class="food-card-discount">' + mrpInfo.discount + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="food-card-footer" data-footer-item-id="' + item.id + '">' +
+      renderCardButtonHtml(item.id, item.name, item.price, imgSrc, qty, isAvailable) +
+    '</div>' +
+  '</div>';
+}
+
+function handleCardAddToCart(id, name, price, img, btn) {
+  btn.classList.add("adding");
+  btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>';
+  setTimeout(function() {
+    CartManager.addItem(id, name, price, img, 1);
+    showToast(name + " added to cart!");
+    syncAllCardQuantities();
+  }, 120);
+}
+
+function handleCardQtyChange(id, delta) {
+  CartManager.changeQty(id, delta);
+  syncAllCardQuantities();
+}
+
+function syncAllCardQuantities() {
+  const cart = CartManager.getAll();
+  document.querySelectorAll(".food-card").forEach(function(card) {
+    const itemId = parseInt(card.dataset.itemId, 10);
+    if (!itemId) return;
+    const footer = card.querySelector('[data-footer-item-id="' + itemId + '"]') || card.querySelector(".food-card-footer");
+    if (!footer) return;
+    const qty = cart[itemId] ? cart[itemId].quantity : 0;
+    const nameEl = card.querySelector(".food-card-name");
+    const name = nameEl ? nameEl.textContent.trim() : "Item";
+    const priceEl = card.querySelector(".food-card-price");
+    const price = priceEl ? parseFloat(priceEl.textContent.replace(/[^0-9.]/g, "")) || 0 : 0;
+    const imgEl = card.querySelector(".food-card-img");
+    const img = imgEl ? imgEl.src : "";
+    const isAvailable = !card.querySelector(".food-card-unavailable");
+
+    footer.innerHTML = renderCardButtonHtml(itemId, name, price, img, qty, isAvailable);
+  });
+}
+
+function openCardModal(itemObj) {
+  showFoodDetailsModal(itemObj);
+}
+
 // ---------- Food Details Modal (Public) ----------
 function showFoodDetailsModal(item) {
   if (!item) return;
@@ -597,6 +735,9 @@ function showFoodDetailsModal(item) {
   const currentCartQty = cart[item.id] ? cart[item.id].quantity : 0;
   let selectedQty = currentCartQty > 0 ? currentCartQty : 1;
   const isAvailable = item.available !== false;
+  const isVeg = isVegetarian(item.name, item.categoryName);
+  const ratingInfo = getItemRating(item.id);
+  const mrpInfo = getItemMrp(item.price);
 
   modal.innerHTML =
     '<div class="modal-card food-details-card">' +
@@ -607,9 +748,22 @@ function showFoodDetailsModal(item) {
           (!isAvailable ? '<span class="food-card-unavailable">Currently Unavailable</span>' : '') +
         '</div>' +
         '<div class="food-details-info">' +
-          '<div class="food-details-category">' + escapeHtml(item.categoryName || "Canteen Fresh") + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+            '<span class="diet-badge ' + (isVeg ? "veg" : "non-veg") + '">' +
+              '<span class="diet-dot"></span>' +
+            '</span>' +
+            '<div class="food-details-category">' + escapeHtml(item.categoryName || "Canteen Fresh") + '</div>' +
+            '<span class="food-rating-pill" style="margin-left:auto;">' +
+              '<span>' + ratingInfo.rating + '</span>' +
+              '<span class="material-symbols-outlined star-icon">star</span>' +
+            '</span>' +
+          '</div>' +
           '<h2 class="food-details-title">' + escapeHtml(item.name) + '</h2>' +
-          '<div class="food-details-price">' + formatMoney(item.price) + '</div>' +
+          '<div class="food-pricing-row" style="margin: 8px 0 14px;">' +
+            '<span class="food-details-price">' + formatMoney(item.price) + '</span>' +
+            '<span class="food-card-mrp" style="font-size:14px;">' + formatMoney(mrpInfo.mrp) + '</span>' +
+            '<span class="food-card-discount" style="font-size:13px;">' + mrpInfo.discount + '</span>' +
+          '</div>' +
           '<div class="food-details-status ' + (isAvailable ? 'in-stock' : 'out-of-stock') + '">' +
             '<span class="material-symbols-outlined" style="font-size:18px;">' + (isAvailable ? 'check_circle' : 'cancel') + '</span> ' +
             (isAvailable ? 'In Stock & Ready to Order' : 'Currently Unavailable') +
@@ -619,8 +773,8 @@ function showFoodDetailsModal(item) {
           '</div>' +
           (isAvailable ?
             '<div class="food-details-stepper-row">' +
-              '<span style="font-weight:500;font-size:14px;color:var(--fk-text-light);">Quantity:</span>' +
-              '<div class="qty-control details-qty-control">' +
+              '<span style="font-weight:600;font-size:14px;color:var(--fk-text);">Quantity:</span>' +
+              '<div class="qty-control details-qty-control" style="width:auto;display:inline-flex;">' +
                 '<button class="qty-btn" id="modalQtyMinus">&minus;</button>' +
                 '<span class="qty-value" id="modalQtyValue">' + selectedQty + '</span>' +
                 '<button class="qty-btn" id="modalQtyPlus">+</button>' +
@@ -663,10 +817,8 @@ function showFoodDetailsModal(item) {
       CartManager.addItem(item.id, item.name, item.price, imgSrc, selectedQty);
       showToast(item.name + " added to cart!");
       closeFoodDetailsModal();
-      if (typeof loadMenu === "function") loadMenu();
+      syncAllCardQuantities();
       if (typeof renderCart === "function") renderCart();
-      if (typeof renderPopularItems === "function") renderPopularItems();
-      if (typeof renderRecommendedItems === "function") renderRecommendedItems();
     };
 
     buyBtn.onclick = function() {
@@ -879,7 +1031,8 @@ var CartManager = {
       void el.offsetWidth;
       el.classList.add("badge-bounce");
     });
-    window.dispatchEvent(new CustomEvent("cartUpdated", { detail: { count: count } }));
+    updateFloatingCartBar();
+    window.dispatchEvent(new CustomEvent("cartUpdated", { detail: { count: count, total: this.getTotal() } }));
   },
 
   getItemsArray: function() {
@@ -893,8 +1046,49 @@ var CartManager = {
   }
 };
 
-// Update cart badge on every page load
-document.addEventListener("DOMContentLoaded", function() { CartManager.updateBadge(); });
+// ---------- Mobile Floating Cart Bar ----------
+function updateFloatingCartBar() {
+  const path = window.location.pathname.toLowerCase();
+  if (path.includes("cart.html") || path.includes("admin.html")) {
+    const existing = document.getElementById("floatingCartBar");
+    if (existing) existing.classList.remove("visible");
+    return;
+  }
+
+  const count = CartManager.getCount();
+  const total = CartManager.getTotal();
+  let bar = document.getElementById("floatingCartBar");
+
+  if (count <= 0) {
+    if (bar) bar.classList.remove("visible");
+    return;
+  }
+
+  if (!bar) {
+    bar = document.createElement("a");
+    bar.id = "floatingCartBar";
+    bar.className = "floating-cart-bar";
+    bar.href = "cart.html";
+    document.body.appendChild(bar);
+  }
+
+  bar.innerHTML =
+    '<div class="floating-cart-info">' +
+      '<span class="floating-cart-count">' + count + (count === 1 ? ' Item' : ' Items') + '</span>' +
+      '<span class="floating-cart-dot">&bull;</span>' +
+      '<span class="floating-cart-total">' + formatMoney(total) + '</span>' +
+    '</div>' +
+    '<div class="floating-cart-action">' +
+      'View Cart <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>' +
+    '</div>';
+
+  bar.classList.add("visible");
+}
+
+// Update cart badge and floating cart on every page load
+document.addEventListener("DOMContentLoaded", function() {
+  CartManager.updateBadge();
+});
 
 /** Simple pagination control renderer */
 function renderPagination(containerEl, page, totalPages, onPage) {

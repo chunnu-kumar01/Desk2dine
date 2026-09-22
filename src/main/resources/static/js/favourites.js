@@ -77,66 +77,24 @@ function renderList(items) {
     '</div>';
     return;
   }
+  const cart = CartManager.getAll();
+  const favouriteIds = new Set(items.map(function(i) { return i.id; }));
   list.innerHTML = items.map(function(item) {
-    const imgSrc = getFoodImage(item.name, item.categoryName);
-    const rating = (Math.random() * 1.5 + 3.5).toFixed(1);
-    let starsHtml = '';
-    const full = Math.floor(parseFloat(rating));
-    const half = parseFloat(rating) % 1 >= 0.5 ? 1 : 0;
-    const empty = 5 - full - half;
-    for (let i = 0; i < full; i++) starsHtml += '<span class="material-symbols-outlined star">star</span>';
-    if (half) starsHtml += '<span class="material-symbols-outlined star">star_half</span>';
-    for (let i = 0; i < empty; i++) starsHtml += '<span class="material-symbols-outlined star empty">star</span>';
-    const cart = CartManager.getAll();
-    const qty = cart[item.id] ? cart[item.id].quantity : 0;
-    return '<div class="food-card">' +
-      '<div class="food-card-img-wrap">' +
-        '<img class="food-card-img" src="' + imgSrc + '" alt="' + escapeHtml(item.name) + '" loading="lazy" onerror="handleImageError(this)">' +
-        '<button class="food-card-fav active" onclick="removeFavourite(' + item.id + ')" title="Remove from favourites">' +
-          '<span class="material-symbols-outlined">favorite</span>' +
-        '</button>' +
-      '</div>' +
-      '<div class="food-card-body">' +
-        '<div class="food-card-name">' + escapeHtml(item.name) + '</div>' +
-        '<div class="food-card-rating">' + starsHtml + '<span class="rating-text">' + rating + '</span></div>' +
-        '<div class="food-card-price">' + formatMoney(item.price) + '</div>' +
-      '</div>' +
-      '<div class="food-card-footer">' +
-        (qty > 0
-          ? '<div class="qty-control">' +
-              '<button class="qty-btn" onclick="changeQty(' + item.id + ', -1)">&minus;</button>' +
-              '<span class="qty-value">' + qty + '</span>' +
-              '<button class="qty-btn" onclick="changeQty(' + item.id + ', 1)">+</button>' +
-            '</div>'
-          : '<button class="btn-add-item" id="addBtn-' + item.id + '" onclick="addToCart(' + item.id + ', \'' + escapeJs(item.name) + '\', ' + item.price + ', \'' + imgSrc + '\', this)">' +
-              '<span class="material-symbols-outlined">add_shopping_cart</span> ADD' +
-            '</button>'
-        ) +
-      '</div>' +
-    '</div>';
+    return renderFoodCardHtml(item, cart, { showFav: true, favouriteIds: favouriteIds, isFavActive: true, onRemoveFav: 'removeFavourite(' + item.id + ')' });
   }).join("");
   setTimeout(initScrollAnimations, 100);
-}
-
-function escapeJs(str) {
-  return String(str).replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+  /* Sync favourite remove buttons */
+  list.querySelectorAll('.food-card-fav').forEach(function(btn) {
+    btn.classList.add('active');
+  });
 }
 
 function addToCart(id, name, price, img, btn) {
-  btn.classList.add("adding");
-  btn.innerHTML = '<span class="spinner"></span>';
-  setTimeout(function() {
-    CartManager.addItem(id, name, price, img, 1);
-    btn.classList.remove("adding");
-    btn.classList.add("added");
-    btn.innerHTML = '<span class="material-symbols-outlined">check</span> ADDED';
-    showToast(name + " added to cart");
-    setTimeout(function() { loadFavourites(); }, 500);
-  }, 400);
+  handleCardAddToCart(id, name, price, img, btn);
 }
 
 function changeQty(id, delta) {
-  CartManager.changeQty(id, delta);
+  handleCardQtyChange(id, delta);
   loadFavourites();
 }
 

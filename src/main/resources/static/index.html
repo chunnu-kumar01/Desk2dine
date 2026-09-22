@@ -31,6 +31,11 @@
 
     <!-- Header Right Actions -->
     <div class="topbar-right">
+      <!-- Mobile search toggle (hidden on desktop) -->
+      <button class="icon-btn mobile-search-btn" id="mobileSearchBtn" title="Search" onclick="toggleMobileSearch()" aria-label="Toggle search">
+        <span class="material-symbols-outlined">search</span>
+      </button>
+
       <a href="menu.html" class="topbar-nav-link" title="Browse Menu">
         <span class="material-symbols-outlined">restaurant_menu</span>
         <span class="nav-text">Menu</span>
@@ -59,23 +64,92 @@
     </div>
   </header>
 
+  <!-- Mobile Search Bar (slides down below topbar on mobile) -->
+  <div class="mobile-search-bar" id="mobileSearchBar" aria-hidden="true">
+    <div class="mobile-search-inner">
+      <span class="material-symbols-outlined" style="color:#888;font-size:20px;">search</span>
+      <input type="text" id="mobileSearchInput" placeholder="Search for food, snacks, beverages..." autocomplete="off">
+      <button class="icon-btn" onclick="toggleMobileSearch()" aria-label="Close search">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+  </div>
+
   <main class="page">
-    <!-- Hero Banner -->
-    <div class="hero-banner">
-      <div class="hero-text">
-        <h1>Order your favourite food here</h1>
-        <p>Choose from a diverse canteen menu crafted fresh daily. Enjoy delicious hot meals and snacks delivered straight to your faculty desk or department.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
-          <button class="hero-btn" onclick="document.getElementById('completeMenuSection').scrollIntoView({behavior:'smooth'})">
-            <span class="material-symbols-outlined">restaurant_menu</span> View Full Menu
-          </button>
-          <a href="#offersSection" class="btn btn-outline" style="border-color:#fff;color:#fff;background:rgba(255,255,255,0.15);padding:10px 18px;">
-            <span class="material-symbols-outlined">local_offer</span> Today's Offers
-          </a>
+    <!-- Hero Banner Carousel -->
+    <div class="hero-carousel" id="heroCarousel">
+      <div class="hero-slides" id="heroSlides">
+        <!-- Slide 1 -->
+        <div class="hero-slide">
+          <div class="hero-slide-content">
+            <span class="hero-slide-badge"><span class="material-symbols-outlined" style="font-size:14px;">bolt</span> Fast Campus Delivery</span>
+            <h1 class="hero-slide-title">Delicious Food Delivered to Your Faculty Desk</h1>
+            <p class="hero-slide-desc">Order freshly prepared meals, crispy snacks and refreshing beverages without leaving your cabin or department. Express 15-minute delivery across all academic blocks.</p>
+            <div class="hero-slide-actions">
+              <button class="hero-btn" onclick="document.getElementById('completeMenuSection').scrollIntoView({behavior:'smooth'})">
+                <span class="material-symbols-outlined">restaurant_menu</span> Order Now
+              </button>
+              <a href="#offersSection" class="btn btn-outline" style="border-color:rgba(255,255,255,0.6);color:#fff;background:rgba(255,255,255,0.12);padding:10px 18px;border-radius:var(--fk-radius);">
+                <span class="material-symbols-outlined">local_offer</span> Today's Offers
+              </a>
+            </div>
+          </div>
+          <div class="hero-slide-image">
+            <img src="https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&h=500&fit=crop&q=80" alt="Executive Thali">
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="hero-slide">
+          <div class="hero-slide-content">
+            <span class="hero-slide-badge" style="color:#FFE11B;"><span class="material-symbols-outlined" style="font-size:14px;">coffee</span> Faculty Tea Break</span>
+            <h1 class="hero-slide-title">Hot Masala Chai & Crispy Samosas</h1>
+            <p class="hero-slide-desc">Take a refreshing break with our authentic filter coffee, adrak masala chai, hot samosas, and grilled sandwiches prepared fresh all day.</p>
+            <div class="hero-slide-actions">
+              <button class="hero-btn" onclick="filterByCategory(1)">
+                <span class="material-symbols-outlined">coffee</span> Beverages
+              </button>
+              <button class="btn btn-outline" style="border-color:rgba(255,255,255,0.6);color:#fff;background:rgba(255,255,255,0.12);padding:10px 18px;border-radius:var(--fk-radius);" onclick="filterByCategory(2)">
+                <span class="material-symbols-outlined">bakery_dining</span> Snacks
+              </button>
+            </div>
+          </div>
+          <div class="hero-slide-image">
+            <img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&h=500&fit=crop&q=80" alt="Samosa and Chai">
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="hero-slide">
+          <div class="hero-slide-content">
+            <span class="hero-slide-badge" style="color:#4caf50;background:rgba(76,175,80,0.2);border-color:rgba(76,175,80,0.4);"><span class="material-symbols-outlined" style="font-size:14px;">eco</span> 100% Hygienic & Fresh</span>
+            <h1 class="hero-slide-title">Nutritious Executive Meals & Platters</h1>
+            <p class="hero-slide-desc">Healthy vegetarian thalis, fried rice, and sweet desserts cooked using 100% RO purified water and fresh ingredients under strict hygiene standards.</p>
+            <div class="hero-slide-actions">
+              <button class="hero-btn" onclick="filterByCategory(3)">
+                <span class="material-symbols-outlined">dinner_dining</span> View Meals
+              </button>
+            </div>
+          </div>
+          <div class="hero-slide-image">
+            <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&h=500&fit=crop&q=80" alt="Delicious Food">
+          </div>
         </div>
       </div>
-      <div class="hero-image">
-        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&h=500&fit=crop&q=80" alt="Delicious Food">
+
+      <!-- Carousel Navigation -->
+      <button class="hero-carousel-nav prev" id="heroPrevBtn" aria-label="Previous slide">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+      <button class="hero-carousel-nav next" id="heroNextBtn" aria-label="Next slide">
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+
+      <!-- Carousel Dots -->
+      <div class="hero-carousel-dots" id="heroDots">
+        <span class="hero-carousel-dot active" data-index="0"></span>
+        <span class="hero-carousel-dot" data-index="1"></span>
+        <span class="hero-carousel-dot" data-index="2"></span>
       </div>
     </div>
 
