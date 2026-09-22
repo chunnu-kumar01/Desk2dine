@@ -186,7 +186,7 @@ function renderMenu(items) {
 
   if (!items || items.length === 0) {
     list.innerHTML =
-      '<div class="empty-state">' +
+      '<div class="empty-state" style="grid-column: 1 / -1;">' +
         '<div class="empty-icon"><span class="material-symbols-outlined">search_off</span></div>' +
         '<div class="big">No items found</div>' +
         '<p>Try a different search or category.</p>' +
@@ -196,48 +196,7 @@ function renderMenu(items) {
 
   const cart = CartManager.getAll();
   list.innerHTML = items.map(function(item) {
-    const isFav = favouriteIds.has(item.id);
-    const imgSrc = item.imageUrl || getFoodImage(item.name, item.categoryName);
-    const qty = cart[item.id] ? cart[item.id].quantity : 0;
-    const isAvailable = item.available !== false;
-    const itemJson = escapeHtml(JSON.stringify({
-      id: item.id,
-      name: item.name,
-      categoryName: item.categoryName || "",
-      price: item.price,
-      imageUrl: imgSrc,
-      description: item.description || "",
-      available: isAvailable
-    }));
-
-    return '<div class="food-card" data-item-id="' + item.id + '">' +
-        '<div class="food-card-img-wrap" onclick=\'openCardModal(' + itemJson + ')\'>' +
-          '<img class="food-card-img" src="' + imgSrc + '" alt="' + escapeHtml(item.name) + '" loading="lazy" onerror="handleImageError(this)">' +
-          (!isAvailable ? '<span class="food-card-unavailable">Unavailable</span>' : '') +
-          '<button class="food-card-fav ' + (isFav ? "active" : "") + '" onclick="event.stopPropagation();toggleFavourite(' + item.id + ', this)" title="Favourite">' +
-            '<span class="material-symbols-outlined">' + (isFav ? 'favorite' : 'favorite_border') + '</span>' +
-          '</button>' +
-        '</div>' +
-        '<div class="food-card-body">' +
-          '<div class="food-card-name" onclick=\'openCardModal(' + itemJson + ')\'>' + escapeHtml(item.name) + '</div>' +
-          (item.description ? '<div class="food-card-desc">' + escapeHtml(item.description) + '</div>' : "") +
-          '<div class="food-card-price">' + formatMoney(item.price) + '</div>' +
-        '</div>' +
-        (isAvailable ?
-          '<div class="food-card-footer">' +
-            (qty > 0
-              ? '<div class="qty-control">' +
-                  '<button class="qty-btn" onclick="changeQty(' + item.id + ', -1)">&minus;</button>' +
-                  '<span class="qty-value">' + qty + '</span>' +
-                  '<button class="qty-btn" onclick="changeQty(' + item.id + ', 1)">+</button>' +
-                '</div>'
-              : '<button class="btn-add-item" id="addBtn-' + item.id + '" onclick="addToCart(' + item.id + ', \'' + escapeJs(item.name) + '\', ' + item.price + ', \'' + imgSrc + '\', this)">' +
-                  '<span class="material-symbols-outlined">add_shopping_cart</span> ADD' +
-                '</button>'
-            ) +
-          '</div>' :
-          '<div class="food-card-footer"><span style="font-size:12px;color:var(--fk-red);font-weight:600;">Out of Stock</span></div>') +
-      '</div>';
+    return renderFoodCardHtml(item, cart, { showFav: true, favouriteIds: favouriteIds });
   }).join("");
 }
 
@@ -245,26 +204,12 @@ function openCardModal(itemObj) {
   showFoodDetailsModal(itemObj);
 }
 
-function escapeJs(str) {
-  return String(str).replace(/'/g, "\\'").replace(/\\/g, '\\\\');
-}
-
 function addToCart(id, name, price, img, btn) {
-  btn.classList.add("adding");
-  btn.innerHTML = '<span class="spinner"></span>';
-  setTimeout(function() {
-    CartManager.addItem(id, name, price, img, 1);
-    btn.classList.remove("adding");
-    btn.classList.add("added");
-    btn.innerHTML = '<span class="material-symbols-outlined">check</span> ADDED';
-    showToast(name + " added to cart");
-    setTimeout(function() { loadMenu(); }, 400);
-  }, 250);
+  handleCardAddToCart(id, name, price, img, btn);
 }
 
 function changeQty(id, delta) {
-  CartManager.changeQty(id, delta);
-  loadMenu();
+  handleCardQtyChange(id, delta);
 }
 
 async function toggleFavourite(menuItemId, btn) {

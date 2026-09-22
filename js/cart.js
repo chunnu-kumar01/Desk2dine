@@ -86,65 +86,86 @@ function renderCart() {
   }).join("");
 
   const locationOptions = deliveryLocations.map(function(loc) {
-    return '<option value="' + loc.id + '">' + escapeHtml(loc.name) + (loc.block ? " — " + escapeHtml(loc.block) : "") + '</option>';
+    return '<option value="' + loc.id + '">' + escapeHtml(loc.name) + (loc.block ? " \u2014 " + escapeHtml(loc.block) : "") + '</option>';
   }).join("");
 
-  let checkoutActionHtml = '';
-  if (!currentUser) {
-    checkoutActionHtml =
-      '<div style="background:#eef4ff;border:1px solid #c7d9fd;border-radius:4px;padding:12px;margin:16px 0;">' +
-        '<div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--fk-blue);font-size:14px;">' +
-          '<span class="material-symbols-outlined" style="font-size:20px;">lock</span> Login to Checkout' +
-        '</div>' +
-        '<p style="font-size:12px;color:#555;margin:4px 0 0;line-height:1.4;">' +
-          'Please login with your faculty account to choose your delivery room/cabin and confirm your order.' +
-        '</p>' +
-      '</div>' +
-      '<button class="btn btn-primary btn-block" onclick="startCheckoutAuth()" style="margin-top:10px;padding:12px 16px;font-size:15px;font-weight:700;">' +
-        '<span class="material-symbols-outlined">login</span> Proceed to Checkout' +
-      '</button>';
-  } else {
-    checkoutActionHtml =
-      '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:10px 12px;margin:14px 0;">' +
-        '<div style="font-size:11px;text-transform:uppercase;color:#15803d;font-weight:700;letter-spacing:0.5px;">Ordering as Faculty</div>' +
-        '<div style="font-size:14px;font-weight:700;color:#166534;margin-top:2px;">' + escapeHtml(currentUser.fullName) + '</div>' +
-        '<div style="font-size:12px;color:#4b5563;">' + escapeHtml(currentUser.email) + '</div>' +
-      '</div>' +
-      '<div class="field" style="margin-top:14px;">' +
-        '<label for="deliveryLocation"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">location_on</span> Delivery Location</label>' +
-        '<select id="deliveryLocation">' +
-          (locationOptions || '<option value="">Default Faculty Cabin</option>') +
-        '</select>' +
-      '</div>' +
-      '<button class="btn btn-success btn-block" id="placeOrderBtn" onclick="placeOrder()" style="margin-top:16px;padding:12px 16px;font-size:15px;font-weight:700;">' +
-        '<span class="material-symbols-outlined">shopping_cart_checkout</span> Confirm & Place Order' +
-      '</button>';
-  }
+  const savingsAmt = subtotal * 0.05;
 
   container.innerHTML =
-    '<div class="cart-page-layout">' +
-      '<div class="cart-page-items">' +
-        '<div class="cart-page-header-row">' +
-          '<span>' + totalItems + ' item' + (totalItems > 1 ? 's' : '') + ' in your cart</span>' +
-          '<button class="btn-link" onclick="clearCart()">' +
-            '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">delete_sweep</span> Clear Cart' +
-          '</button>' +
+    '<div class="cart-layout">' +
+      '<div class="cart-main-col">' +
+
+        /* Items card */
+        '<div class="cart-card">' +
+          '<div class="cart-card-header">' +
+            '<span class="material-symbols-outlined" style="color:var(--fk-blue);">shopping_cart</span>' +
+            '<span>' + totalItems + ' item' + (totalItems > 1 ? 's' : '') + ' in your cart</span>' +
+            '<button class="btn-link" onclick="clearCart()" style="margin-left:auto;font-size:13px;">' +
+              '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">delete_sweep</span> Clear All' +
+            '</button>' +
+          '</div>' +
+          '<div class="cart-card-body" style="padding:0;">' +
+            rows +
+          '</div>' +
         '</div>' +
-        rows +
-      '</div>' +
-      '<div class="cart-page-summary">' +
-        '<div class="cart-page-summary-card">' +
-          '<h3>Price Details</h3>' +
-          '<div class="cart-page-summary-row"><span>Price (' + totalItems + ' items)</span><span>' + formatMoney(subtotal) + '</span></div>' +
-          '<div class="cart-page-summary-row"><span>Campus Delivery</span><span class="success-text">FREE</span></div>' +
-          '<div class="cart-page-summary-row total"><span>Total Payable</span><span>' + formatMoney(subtotal) + '</span></div>' +
-          checkoutActionHtml +
-          '<a href="index.html" class="btn btn-outline btn-block" style="margin-top:10px;">' +
-            '<span class="material-symbols-outlined">add_shopping_cart</span> Add More Items' +
+
+        /* Delivery location card — only shown when logged in */
+        (currentUser ?
+          '<div class="cart-card">' +
+            '<div class="cart-card-header">' +
+              '<span class="material-symbols-outlined" style="color:var(--fk-blue);">location_on</span> Delivery Location' +
+            '</div>' +
+            '<div class="cart-card-body">' +
+              '<div class="field">' +
+                '<select id="deliveryLocation">' +
+                  (locationOptions || '<option value="">Default Faculty Cabin</option>') +
+                '</select>' +
+              '</div>' +
+              '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-top:14px;">' +
+                '<div style="font-size:11px;text-transform:uppercase;color:#15803d;font-weight:700;letter-spacing:0.5px;">Ordering as</div>' +
+                '<div style="font-size:14px;font-weight:700;color:#166534;margin-top:2px;">' + escapeHtml(currentUser.fullName) + '</div>' +
+                '<div style="font-size:12px;color:#4b5563;">' + escapeHtml(currentUser.email) + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        : '') +
+
+      '</div>' + /* end cart-main-col */
+
+      /* Sticky price summary sidebar */
+      '<div class="cart-sidebar-col">' +
+        '<div class="price-details-card">' +
+          '<div class="price-details-title">Price Details</div>' +
+          '<div class="price-row"><span>Price (' + totalItems + ' item' + (totalItems > 1 ? 's' : '') + ')</span><span>' + formatMoney(subtotal) + '</span></div>' +
+          '<div class="price-row discount-row"><span>Campus Discount (5%)</span><span>&minus;' + formatMoney(savingsAmt) + '</span></div>' +
+          '<div class="price-row delivery-row"><span>Delivery Charges</span><span class="free-tag">FREE</span></div>' +
+          '<div class="price-row total-row"><span>Total Payable</span><span>' + formatMoney(subtotal - savingsAmt) + '</span></div>' +
+          '<div class="savings-banner">' +
+            '<span class="material-symbols-outlined" style="font-size:18px;">savings</span>' +
+            'You will save ' + formatMoney(savingsAmt) + ' on this order!' +
+          '</div>' +
+          (!currentUser ?
+            '<div style="background:#eef4ff;border:1px solid #c7d9fd;border-radius:8px;padding:14px;margin:16px 0;">' +
+              '<div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--fk-blue);font-size:13px;">' +
+                '<span class="material-symbols-outlined" style="font-size:18px;">lock</span> Login required' +
+              '</div>' +
+              '<p style="font-size:12px;color:#555;margin:6px 0 0;line-height:1.4;">Sign in with your faculty account to confirm delivery and place your order.</p>' +
+            '</div>' +
+            '<button class="cart-checkout-btn" onclick="startCheckoutAuth()">' +
+              '<span class="material-symbols-outlined">login</span> Proceed to Checkout' +
+            '</button>'
+          :
+            '<button class="cart-checkout-btn" id="placeOrderBtn" onclick="placeOrder()">' +
+              '<span class="material-symbols-outlined">shopping_cart_checkout</span> Place Order' +
+            '</button>'
+          ) +
+          '<a href="index.html" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:13px;color:var(--fk-blue);font-weight:600;text-decoration:none;">' +
+            '<span class="material-symbols-outlined" style="font-size:16px;">add_shopping_cart</span> Add More Items' +
           '</a>' +
         '</div>' +
       '</div>' +
-    '</div>';
+
+    '</div>'; /* end cart-layout */
 }
 
 function startCheckoutAuth() {
